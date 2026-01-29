@@ -62,7 +62,7 @@ export async function POST(request: Request) {
                         color_en: v.color_en,
                         colorHex: v.colorHex,
                         stock: Number(v.stock),
-                        sku: v.sku
+                        sku: v.sku || `${slug}-${v.size}-${v.color_en}-${Math.random().toString(36).substring(2, 7)}`.toUpperCase().replace(/[^A-Z0-9-]/g, '-')
                     }))
                 })
             }

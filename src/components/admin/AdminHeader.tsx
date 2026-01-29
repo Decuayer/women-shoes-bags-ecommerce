@@ -11,12 +11,7 @@ export default function AdminHeader({ locale }: AdminHeaderProps) {
         <header className="h-16 bg-surface border-b border-border sticky top-0 z-10 px-6 flex items-center justify-between">
             {/* Search */}
             <div className="relative w-96">
-                <input
-                    type="text"
-                    placeholder={locale === 'tr' ? 'Ara...' : 'Search...'}
-                    className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2 focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all"
-                />
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+
             </div>
 
             {/* Right Actions */}

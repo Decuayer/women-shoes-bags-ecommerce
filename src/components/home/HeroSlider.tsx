@@ -15,13 +15,14 @@ interface Slide {
 
 interface HeroSliderProps {
     locale: string
+    slides?: any[]
 }
 
-export default function HeroSlider({ locale }: HeroSliderProps) {
+export default function HeroSlider({ locale, slides: dbSlides = [] }: HeroSliderProps) {
     const [currentSlide, setCurrentSlide] = useState(0)
     const isTr = locale === 'tr'
 
-    const slides: Slide[] = [
+    const defaultSlides: Slide[] = [
         {
             id: 1,
             image: '/images/hero/hero-1.jpg',
@@ -54,7 +55,17 @@ export default function HeroSlider({ locale }: HeroSliderProps) {
         }
     ]
 
+    const slides: Slide[] = dbSlides.length > 0 ? dbSlides.map((s, i) => ({
+        id: i,
+        image: s.image,
+        title: isTr ? s.title_tr : s.title_en,
+        subtitle: isTr ? s.subtitle_tr : s.subtitle_en,
+        buttonText: isTr ? (s.buttonText_tr || 'Alışverişe Başla') : (s.buttonText_en || 'Shop Now'),
+        buttonLink: s.link || `/${locale}/products`
+    })) : defaultSlides
+
     useEffect(() => {
+        if (slides.length === 0) return
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % slides.length)
         }, 5000)
@@ -96,8 +107,8 @@ export default function HeroSlider({ locale }: HeroSliderProps) {
                         <div className="max-w-xl">
                             <h1
                                 className={`text-4xl md:text-6xl font-bold mb-4 transition-all duration-700 ${index === currentSlide
-                                        ? 'opacity-100 translate-y-0'
-                                        : 'opacity-0 translate-y-10'
+                                    ? 'opacity-100 translate-y-0'
+                                    : 'opacity-0 translate-y-10'
                                     }`}
                                 style={{ transitionDelay: '200ms' }}
                             >
@@ -105,8 +116,8 @@ export default function HeroSlider({ locale }: HeroSliderProps) {
                             </h1>
                             <p
                                 className={`text-lg md:text-xl text-text-muted mb-8 transition-all duration-700 ${index === currentSlide
-                                        ? 'opacity-100 translate-y-0'
-                                        : 'opacity-0 translate-y-10'
+                                    ? 'opacity-100 translate-y-0'
+                                    : 'opacity-0 translate-y-10'
                                     }`}
                                 style={{ transitionDelay: '400ms' }}
                             >
@@ -115,8 +126,8 @@ export default function HeroSlider({ locale }: HeroSliderProps) {
                             <Link
                                 href={slide.buttonLink}
                                 className={`btn btn-primary text-lg transition-all duration-700 ${index === currentSlide
-                                        ? 'opacity-100 translate-y-0'
-                                        : 'opacity-0 translate-y-10'
+                                    ? 'opacity-100 translate-y-0'
+                                    : 'opacity-0 translate-y-10'
                                     }`}
                                 style={{ transitionDelay: '600ms' }}
                             >
@@ -150,8 +161,8 @@ export default function HeroSlider({ locale }: HeroSliderProps) {
                         key={index}
                         onClick={() => setCurrentSlide(index)}
                         className={`w-3 h-3 rounded-full transition-all ${index === currentSlide
-                                ? 'bg-secondary w-8'
-                                : 'bg-text-dark hover:bg-text-muted'
+                            ? 'bg-secondary w-8'
+                            : 'bg-text-dark hover:bg-text-muted'
                             }`}
                         aria-label={`Go to slide ${index + 1}`}
                     />

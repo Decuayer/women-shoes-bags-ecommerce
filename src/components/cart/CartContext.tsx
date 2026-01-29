@@ -1,6 +1,9 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
+import { useAuth } from '@/context/AuthContext'
+import { useToast } from '@/context/ToastContext'
+import { useTranslations } from 'next-intl'
 
 interface CartItem {
     productId: string
@@ -18,7 +21,7 @@ interface CartItem {
 
 interface CartContextType {
     items: CartItem[]
-    addItem: (item: Omit<CartItem, 'quantity'>) => void
+    addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void
     removeItem: (variantId: string) => void
     updateQuantity: (variantId: string, quantity: number) => void
     clearCart: () => void
@@ -34,6 +37,9 @@ const CART_STORAGE_KEY = 'luxebags_cart'
 export function CartProvider({ children }: { children: ReactNode }) {
     const [items, setItems] = useState<CartItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const { user } = useAuth()
+    const { addToast } = useToast()
+    const t = useTranslations('cart')
 
     // Load cart from localStorage on mount
     useEffect(() => {
@@ -55,28 +61,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
     }, [items, isLoading])
 
-    const addItem = (item: Omit<CartItem, 'quantity'>) => {
+    const addItem = useCallback((item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
+        if (!user) {
+            addToast(t('auth_required'), 'error')
+            return
+        }
+
+        const quantityToAdd = item.quantity || 1
+
         setItems((prev) => {
             const existingIndex = prev.findIndex((i) => i.variantId === item.variantId)
 
             if (existingIndex > -1) {
                 // Update quantity if item exists
                 const updated = [...prev]
-                const newQuantity = Math.min(updated[existingIndex].quantity + 1, item.stock)
+                const newQuantity = Math.min(updated[existingIndex].quantity + quantityToAdd, item.stock)
                 updated[existingIndex] = { ...updated[existingIndex], quantity: newQuantity }
                 return updated
             }
 
             // Add new item
-            return [...prev, { ...item, quantity: 1 }]
+            return [...prev, { ...item, quantity: quantityToAdd }]
         })
-    }
+        addToast(t('success_add'), 'success')
+    }, [user, addToast, t])
 
-    const removeItem = (variantId: string) => {
+    const removeItem = useCallback((variantId: string) => {
         setItems((prev) => prev.filter((i) => i.variantId !== variantId))
-    }
+    }, [])
 
-    const updateQuantity = (variantId: string, quantity: number) => {
+    const updateQuantity = useCallback((variantId: string, quantity: number) => {
         if (quantity < 1) {
             removeItem(variantId)
             return
@@ -89,11 +103,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     : item
             )
         )
-    }
+    }, [removeItem])
 
-    const clearCart = () => {
+    const clearCart = useCallback(() => {
         setItems([])
-    }
+    }, [])
 
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)

@@ -1,108 +1,83 @@
+'use client'
+
+import { useEffect, Suspense } from 'react'
+import { useCart } from '@/components/cart/CartContext'
 import Link from 'next/link'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
-import { CheckCircle, Package, Truck, ArrowRight } from 'lucide-react'
+import { CheckCircle, ArrowRight, ShoppingBag } from 'lucide-react'
+import { useSearchParams, useParams } from 'next/navigation'
 
-interface SuccessPageProps {
-    params: Promise<{ locale: string }>
-}
+function SuccessContent() {
+    const params = useParams()
+    const searchParams = useSearchParams()
 
-export default async function CheckoutSuccessPage({ params }: SuccessPageProps) {
-    const { locale } = await params
+    // useParams returns string | string[], casting to string for locale
+    const locale = params?.locale as string || 'tr'
+    const orderId = searchParams.get('orderId')
+
+    const { clearCart } = useCart()
     const isTr = locale === 'tr'
 
-    // Generate a fake order number
-    const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`
+    useEffect(() => {
+        // Force clear cart to ensure it's empty in UI
+        clearCart()
+    }, [clearCart])
 
     return (
-        <div className="min-h-screen flex flex-col">
-            <Header locale={locale} />
+        <div className="container">
+            <div className="py-20">
+                <div className="max-w-xl mx-auto text-center space-y-8">
+                    <div className="w-24 h-24 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto animate-fadeIn">
+                        <CheckCircle size={48} />
+                    </div>
 
-            <main className="flex-1 bg-background flex items-center justify-center">
-                <div className="container py-16">
-                    <div className="max-w-lg mx-auto text-center">
-                        {/* Success Icon */}
-                        <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-6">
-                            <CheckCircle size={48} className="text-success" />
-                        </div>
-
-                        {/* Title */}
-                        <h1 className="text-3xl font-bold mb-4">
+                    <div className="space-y-4">
+                        <h1 className="text-3xl font-bold">
                             {isTr ? 'Siparişiniz Alındı!' : 'Order Confirmed!'}
                         </h1>
-
-                        {/* Order Number */}
-                        <p className="text-text-muted mb-2">
-                            {isTr ? 'Sipariş Numaranız:' : 'Order Number:'}
-                        </p>
-                        <p className="text-xl font-mono font-bold text-secondary mb-6">
-                            {orderNumber}
-                        </p>
-
-                        {/* Description */}
-                        <p className="text-text-muted mb-8">
+                        <p className="text-text-muted text-lg">
                             {isTr
-                                ? 'Siparişiniz başarıyla alındı. Sipariş detaylarını e-posta adresinize gönderdik. Siparişinizi hazırladığımızda sizi bilgilendireceğiz.'
-                                : 'Your order has been successfully placed. We\'ve sent the order details to your email. We\'ll notify you when your order is ready for shipping.'
-                            }
+                                ? 'Ödemeniz başarıyla tamamlandı. Sipariş detayları e-posta adresinize gönderildi.'
+                                : 'Your payment was successful. Order details have been sent to your email.'}
                         </p>
+                        {orderId && (
+                            <div className="bg-surface border border-border rounded-lg p-4 inline-block">
+                                <span className="text-sm text-text-muted mr-2">
+                                    {isTr ? 'Sipariş No:' : 'Order ID:'}
+                                </span>
+                                <span className="font-mono font-bold text-lg text-secondary">
+                                    {orderId}
+                                </span>
+                            </div>
+                        )}
+                    </div>
 
-                        {/* Order Status Steps */}
-                        <div className="flex items-center justify-center gap-4 mb-10">
-                            <div className="flex flex-col items-center">
-                                <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center mb-2">
-                                    <CheckCircle size={24} className="text-success" />
-                                </div>
-                                <span className="text-xs text-text-muted">
-                                    {isTr ? 'Onaylandı' : 'Confirmed'}
-                                </span>
-                            </div>
-                            <div className="w-8 h-0.5 bg-border" />
-                            <div className="flex flex-col items-center">
-                                <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center mb-2">
-                                    <Package size={24} className="text-text-dark" />
-                                </div>
-                                <span className="text-xs text-text-muted">
-                                    {isTr ? 'Hazırlanıyor' : 'Preparing'}
-                                </span>
-                            </div>
-                            <div className="w-8 h-0.5 bg-border" />
-                            <div className="flex flex-col items-center">
-                                <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center mb-2">
-                                    <Truck size={24} className="text-text-dark" />
-                                </div>
-                                <span className="text-xs text-text-muted">
-                                    {isTr ? 'Kargoda' : 'Shipped'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <Link href={`/${locale}/account/orders`} className="btn btn-secondary">
-                                {isTr ? 'Siparişlerimi Görüntüle' : 'View My Orders'}
-                            </Link>
-                            <Link href={`/${locale}/products`} className="btn btn-primary">
-                                {isTr ? 'Alışverişe Devam Et' : 'Continue Shopping'}
-                                <ArrowRight size={18} />
-                            </Link>
-                        </div>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+                        <Link
+                            href={`/${locale}/account/orders`}
+                            className="btn btn-outline flex items-center justify-center gap-2"
+                        >
+                            <ShoppingBag size={20} />
+                            {isTr ? 'Siparişlerim' : 'My Orders'}
+                        </Link>
+                        <Link
+                            href={`/${locale}`}
+                            className="btn btn-primary flex items-center justify-center gap-2"
+                        >
+                            {isTr ? 'Alışverişe Devam Et' : 'Continue Shopping'}
+                            <ArrowRight size={20} />
+                        </Link>
                     </div>
                 </div>
-            </main>
+            </div>
 
-            <Footer locale={locale} />
         </div>
     )
 }
 
-export async function generateMetadata({ params }: SuccessPageProps) {
-    const { locale } = await params
-
-    return {
-        title: locale === 'tr' ? 'Sipariş Onaylandı | LUXEBAGS' : 'Order Confirmed | LUXEBAGS',
-        description: locale === 'tr'
-            ? 'Siparişiniz başarıyla alındı'
-            : 'Your order has been successfully placed',
-    }
+export default function CheckoutSuccessPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <SuccessContent />
+        </Suspense>
+    )
 }

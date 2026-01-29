@@ -41,9 +41,19 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         name: isTr ? c.name_tr : c.name_en
     }))
 
+    const serializedProduct = {
+        ...product,
+        price: product.price.toNumber(),
+        compareAtPrice: product.compareAtPrice ? product.compareAtPrice.toNumber() : null,
+        variants: product.variants.map(v => ({
+            ...v,
+            priceAdjustment: v.priceAdjustment ? v.priceAdjustment.toNumber() : null
+        }))
+    }
+
     return (
         <ProductForm
-            initialData={product}
+            initialData={serializedProduct}
             categories={formattedCategories}
             locale={locale}
         />

@@ -43,7 +43,12 @@
         "total": "Total",
         "remove": "Remove",
         "quantity": "Quantity",
-        "update": "Update"
+        "update": "Update",
+        "auth_required": "Cannot add item to cart. Please login first.",
+        "success_add": "Item added to cart.",
+        "error_add": "An error occurred while adding the item.",
+        "login_prompt_title": "Please login to continue shopping.",
+        "login_button": "Login"
     },
     "checkout": {
         "title": "Checkout",

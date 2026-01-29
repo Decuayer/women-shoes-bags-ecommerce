@@ -93,12 +93,12 @@ export async function PUT(
             for (const v of variants) {
                 const variantData = {
                     size: v.size,
-                    color: v.color || v.color_en,
                     color_tr: v.color_tr,
                     color_en: v.color_en,
                     colorHex: v.colorHex,
                     stock: Number(v.stock),
-                    sku: v.sku ?? ''
+
+                    sku: v.sku || `VAR-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`.toUpperCase()
                 }
 
                 if (v.id) {
@@ -154,7 +154,7 @@ export async function DELETE(
 
         // Check for orders
         const hasOrders = await prisma.orderItem.findFirst({
-            where: { productVariant: { productId: id } }
+            where: { variant: { productId: id } }
         })
 
         if (hasOrders) {

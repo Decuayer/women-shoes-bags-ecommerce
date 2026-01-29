@@ -142,7 +142,7 @@ export default function ProductForm({ initialData, categories, locale }: Product
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-24">
                 {/* Main Info */}
                 <div className="lg:col-span-2 space-y-8">
                     {/* Basic Details */}

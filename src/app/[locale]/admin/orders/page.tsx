@@ -53,9 +53,18 @@ export default async function OrderListPage({ params, searchParams }: OrderListP
 
     const totalPages = Math.ceil(totalItems / itemsPerPage)
 
+    // Transform orders to plain objects
+    const serializedOrders = orders.map(order => ({
+        ...order,
+        subtotal: order.subtotal.toNumber(),
+        shippingCost: order.shippingCost.toNumber(),
+        tax: order.tax.toNumber(),
+        total: order.total.toNumber(),
+    }))
+
     return (
         <OrderListClient
-            data={orders}
+            data={serializedOrders}
             totalPages={totalPages}
             currentPage={currentPage}
             locale={locale}

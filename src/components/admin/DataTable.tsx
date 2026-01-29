@@ -91,7 +91,7 @@ export default function DataTable<T extends Record<string, any>>({
                                                 {editUrl && (
                                                     <Link
                                                         href={editUrl(row)}
-                                                        className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                                        className="p-2 text-secondary hover:bg-primary/10 rounded-lg transition-colors"
                                                     >
                                                         <Edit size={18} />
                                                     </Link>

@@ -154,7 +154,7 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
         <>
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 shrink-0">
-                <div className="sticky top-28 bg-surface rounded-xl p-6 border border-border">
+                <div className="sticky top-28 bg-surface rounded-xl p-6 border border-border mb-6">
                     <h2 className="font-semibold mb-6 flex items-center gap-2">
                         <SlidersHorizontal size={18} />
                         {isTr ? 'Filtrele' : 'Filter'}

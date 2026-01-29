@@ -56,7 +56,7 @@ export default function OrderListClient({ data, totalPages, currentPage, locale 
         },
         {
             header: locale === 'tr' ? 'Durum' : 'Status',
-            accessor: (row: any) => <OrderStatusBadge status={row.status} />
+            accessor: (row: any) => <OrderStatusBadge status={row.status} locale={locale} />
         }
     ]
 

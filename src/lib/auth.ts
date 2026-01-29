@@ -42,6 +42,11 @@ export function generateRefreshToken(payload: JWTPayload): string {
 /**
  * Verify JWT access token
  */
+
+
+/**
+ * Verify JWT access token (Legacy Node.js)
+ */
 export function verifyAccessToken(token: string): JWTPayload | null {
     try {
         return jwt.verify(token, JWT_SECRET) as JWTPayload

@@ -38,7 +38,15 @@ export default function OrderDetailClient({ order, locale }: OrderDetailClientPr
         }
     }
 
-    const statuses = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURNED']
+    const statuses = [
+        { value: 'PENDING', label: { tr: 'Ödeme Bekleniyor', en: 'Pending Payment' } },
+        { value: 'CONFIRMED', label: { tr: 'Onaylandı', en: 'Confirmed' } },
+        { value: 'PREPARING', label: { tr: 'Hazırlanıyor', en: 'Preparing' } },
+        { value: 'SHIPPED', label: { tr: 'Kargolandı', en: 'Shipped' } },
+        { value: 'DELIVERED', label: { tr: 'Teslim Edildi', en: 'Delivered' } },
+        { value: 'CANCELLED', label: { tr: 'İptal Edildi', en: 'Cancelled' } },
+        { value: 'REFUNDED', label: { tr: 'İade Edildi', en: 'Refunded' } }
+    ]
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 pb-20">
@@ -51,13 +59,31 @@ export default function OrderDetailClient({ order, locale }: OrderDetailClientPr
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-3">
                             {isTr ? 'Sipariş' : 'Order'} #{order.orderNumber}
-                            <OrderStatusBadge status={order.status} />
+                            <OrderStatusBadge status={order.status} locale={locale} />
                         </h1>
                         <p className="text-text-muted text-sm">
                             {new Date(order.createdAt).toLocaleString(isTr ? 'tr-TR' : 'en-US')}
                         </p>
                     </div>
                 </div>
+                <button
+                    onClick={async () => {
+                        if (!confirm(isTr ? 'Bu siparişi silmek istediğinize emin misiniz?' : 'Are you sure you want to delete this order?')) return
+
+                        try {
+                            const res = await fetch(`/api/admin/orders/${order.id}`, { method: 'DELETE' })
+                            if (!res.ok) throw new Error('Failed to delete')
+                            router.push(`/${locale}/admin/orders`)
+                            router.refresh()
+                        } catch (e) {
+                            console.error(e)
+                            alert(isTr ? 'Silme başarısız' : 'Delete failed')
+                        }
+                    }}
+                    className="btn btn-outline border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                >
+                    {isTr ? 'Siparişi Sil' : 'Delete Order'}
+                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -116,6 +142,19 @@ export default function OrderDetailClient({ order, locale }: OrderDetailClientPr
                             </div>
                         </div>
                     </div>
+
+                    {/* Payment Info */}
+                    {order.paymentId && (
+                        <div className="bg-surface border border-border rounded-xl p-6">
+                            <h2 className="font-bold text-lg mb-4 border-b border-border pb-2">
+                                {isTr ? 'Ödeme Bilgileri' : 'Payment Information'}
+                            </h2>
+                            <div>
+                                <h3 className="text-sm font-semibold text-text-muted mb-1">{isTr ? 'Ödeme ID' : 'Payment ID'}</h3>
+                                <p className="font-mono text-sm bg-surface-light p-2 rounded inline-block">{order.paymentId}</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Sidebar Actions */}
@@ -132,7 +171,9 @@ export default function OrderDetailClient({ order, locale }: OrderDetailClientPr
                                 onChange={(e) => setStatus(e.target.value)}
                             >
                                 {statuses.map(s => (
-                                    <option key={s} value={s}>{s}</option>
+                                    <option key={s.value} value={s.value}>
+                                        {isTr ? s.label.tr : s.label.en}
+                                    </option>
                                 ))}
                             </select>
 
@@ -148,6 +189,6 @@ export default function OrderDetailClient({ order, locale }: OrderDetailClientPr
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }

@@ -44,16 +44,21 @@ async function getFeaturedProducts(locale: string) {
     }))
 }
 
+import { getGeneralSettings, getAnnouncementSettings, getSliderSettings } from '@/lib/settings'
+
 export default async function HomePage({ params }: HomePageProps) {
     const { locale } = await params
     const featuredProducts = await getFeaturedProducts(locale)
+    const general = await getGeneralSettings()
+    const announcement = await getAnnouncementSettings()
+    const slider = await getSliderSettings() // This returns array of slides
 
     return (
         <div className="min-h-screen flex flex-col">
-            <Header locale={locale} />
+            <Header locale={locale} settings={{ general, announcement }} />
 
             <main className="flex-1">
-                <HeroSlider locale={locale} />
+                <HeroSlider locale={locale} slides={slider} />
                 <CategoryShowcase locale={locale} />
                 <FeaturedProducts locale={locale} products={featuredProducts} />
 

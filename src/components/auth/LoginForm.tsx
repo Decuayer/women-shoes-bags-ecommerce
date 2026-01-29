@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
 interface LoginFormProps {
     locale: string
@@ -11,6 +12,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ locale }: LoginFormProps) {
     const router = useRouter()
+    const { login } = useAuth()
     const isTr = locale === 'tr'
 
     const [email, setEmail] = useState('')
@@ -36,6 +38,9 @@ export default function LoginForm({ locale }: LoginFormProps) {
             if (!response.ok) {
                 throw new Error(data.error || 'Login failed')
             }
+
+            // Update global auth state
+            login(data.token)
 
             // Redirect to account page on success
             router.push(`/${locale}/account`)
@@ -77,7 +82,7 @@ export default function LoginForm({ locale }: LoginFormProps) {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="input pl-12"
+                            className="input !pl-12"
                             placeholder="ornek@email.com"
                             required
                         />
@@ -94,7 +99,7 @@ export default function LoginForm({ locale }: LoginFormProps) {
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="input pl-12 pr-12"
+                            className="input !pl-12 pr-12"
                             placeholder="••••••••"
                             required
                         />

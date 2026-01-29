@@ -43,7 +43,12 @@
         "total": "Toplam",
         "remove": "Kaldır",
         "quantity": "Adet",
-        "update": "Güncelle"
+        "update": "Güncelle",
+        "auth_required": "Ürün sepete eklenemedi. Lütfen önce giriş yapın.",
+        "success_add": "Ürün sepete eklendi.",
+        "error_add": "Ürün sepete eklenirken bir hata oluştu.",
+        "login_prompt_title": "Alışverişe devam etmek için lütfen giriş yapın.",
+        "login_button": "Giriş Yap"
     },
     "checkout": {
         "title": "Ödeme",

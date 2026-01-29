@@ -6,12 +6,16 @@ interface RegisterPageProps {
     params: Promise<{ locale: string }>
 }
 
+import { getGeneralSettings, getAnnouncementSettings } from '@/lib/settings'
+
 export default async function RegisterPage({ params }: RegisterPageProps) {
     const { locale } = await params
+    const general = await getGeneralSettings()
+    const announcement = await getAnnouncementSettings()
 
     return (
         <div className="min-h-screen flex flex-col">
-            <Header locale={locale} />
+            <Header locale={locale} settings={{ general, announcement }} />
 
             <main className="flex-1 bg-background flex items-center justify-center py-12">
                 <div className="container">
@@ -30,7 +34,7 @@ export async function generateMetadata({ params }: RegisterPageProps) {
     const { locale } = await params
 
     return {
-        title: locale === 'tr' ? 'Kayıt Ol | LUXEBAGS' : 'Sign Up | LUXEBAGS',
+        title: locale === 'tr' ? 'Kayıt Ol | CRAZYSHOES' : 'Sign Up | CRAZYSHOES',
         description: locale === 'tr'
             ? 'Hesap oluşturun ve alışverişe başlayın'
             : 'Create an account and start shopping',

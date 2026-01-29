@@ -115,7 +115,7 @@ export default function RegisterForm({ locale }: RegisterFormProps) {
                                 type="text"
                                 value={formData.firstName}
                                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                className="input pl-12"
+                                className="input !pl-12"
                                 required
                             />
                             <User className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dark" size={20} />
@@ -144,7 +144,7 @@ export default function RegisterForm({ locale }: RegisterFormProps) {
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="input pl-12"
+                            className="input !pl-12"
                             placeholder="ornek@email.com"
                             required
                         />
@@ -161,7 +161,7 @@ export default function RegisterForm({ locale }: RegisterFormProps) {
                             type="tel"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="input pl-12"
+                            className="input !pl-12"
                             placeholder="+90 5XX XXX XX XX"
                         />
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dark" size={20} />
@@ -177,7 +177,7 @@ export default function RegisterForm({ locale }: RegisterFormProps) {
                             type={showPassword ? 'text' : 'password'}
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            className="input pl-12 pr-12"
+                            className="input !pl-12 pr-12"
                             placeholder="••••••••"
                             required
                             minLength={8}
@@ -227,7 +227,7 @@ export default function RegisterForm({ locale }: RegisterFormProps) {
                             type={showPassword ? 'text' : 'password'}
                             value={formData.confirmPassword}
                             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                            className="input pl-12"
+                            className="input !pl-12"
                             placeholder="••••••••"
                             required
                         />

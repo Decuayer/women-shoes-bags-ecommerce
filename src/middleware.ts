@@ -1,22 +1,63 @@
 import createMiddleware from 'next-intl/middleware'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { verifyAccessTokenEdge } from './lib/auth-edge'
 
-// Define locales inline to avoid importing from i18n.ts which uses server-side APIs
-const locales = ['tr', 'en'] as const
+const locales = ['tr', 'en']
 
-// Create i18n middleware
-// Authentication checks are handled in API routes using server-side auth utilities
-// as Edge Runtime doesn't support Node.js crypto module required for JWT verification
 const intlMiddleware = createMiddleware({
     locales,
     defaultLocale: 'tr',
-    localePrefix: 'always',
+    localePrefix: 'always'
 })
 
-export default intlMiddleware
+export default async function middleware(request: NextRequest) {
+    // 1. Handle i18n
+    const response = intlMiddleware(request)
+
+    // 2. Auth Protection logic
+    const path = request.nextUrl.pathname
+
+    // Check if path is protected
+    const isAdminPath = path.includes('/admin')
+    const isAccountPath = path.includes('/account')
+    const isCheckoutPath = path.includes('/checkout') && !path.includes('/checkout/success')
+
+    // Allow public access to login/register within admin/account structure if they exist
+    if (path.includes('/auth/login') || path.includes('/auth/register')) {
+        return response
+    }
+
+    if (isAdminPath || isAccountPath || isCheckoutPath) {
+        const token = request.cookies.get('accessToken')?.value
+
+        // No token -> Redirect to login
+        if (!token) {
+            const locale = request.cookies.get('NEXT_LOCALE')?.value || 'tr'
+            return NextResponse.redirect(new URL(`/${locale}/auth/login`, request.url))
+        }
+
+        // Verify token
+        const payload = await verifyAccessTokenEdge(token)
+
+        if (!payload) {
+            const locale = request.cookies.get('NEXT_LOCALE')?.value || 'tr'
+            return NextResponse.redirect(new URL(`/${locale}/auth/login`, request.url))
+        }
+
+        // Admin check
+        console.log('Middleware Admin Check:', { path, role: payload?.role, required: 'ADMIN' })
+
+        if (isAdminPath && payload.role !== 'ADMIN') {
+            const locale = request.cookies.get('NEXT_LOCALE')?.value || 'tr'
+            // Redirect non-admins to home or account
+            return NextResponse.redirect(new URL(`/${locale}/account`, request.url))
+        }
+    }
+
+    return response
+}
 
 export const config = {
-    // Match all pathnames except for
-    // - API routes, _next, _vercel
-    // - Static files (files containing a dot)
-    matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
+    matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
 }

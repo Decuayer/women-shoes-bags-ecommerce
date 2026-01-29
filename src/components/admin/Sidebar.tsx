@@ -49,7 +49,7 @@ export default function Sidebar({ locale }: SidebarProps) {
         <aside className="w-64 bg-surface border-r border-border h-screen sticky top-0 flex flex-col">
             <div className="p-6 border-b border-border">
                 <Link href={`/${locale}`} className="text-2xl font-bold font-heading tracking-wide">
-                    LUXE<span className="text-secondary">BAGS</span>
+                    CRAZY<span className="text-secondary">SHOES</span>
                     <span className="text-xs block font-sans font-normal text-text-muted mt-1">Admin Panel</span>
                 </Link>
             </div>

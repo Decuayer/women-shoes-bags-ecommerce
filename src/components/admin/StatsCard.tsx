@@ -9,11 +9,12 @@ interface StatsCardProps {
         isPositive: boolean
     }
     description?: string
+    className?: string
 }
 
-export default function StatsCard({ title, value, icon: Icon, trend, description }: StatsCardProps) {
+export default function StatsCard({ title, value, icon: Icon, trend, description, className = '' }: StatsCardProps) {
     return (
-        <div className="bg-surface border border-border rounded-xl p-6">
+        <div className={`bg-surface border border-border rounded-xl p-6 ${className}`}>
             <div className="flex items-start justify-between">
                 <div>
                     <p className="text-sm font-medium text-text-muted mb-1">{title}</p>

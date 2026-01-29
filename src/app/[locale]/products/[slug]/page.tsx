@@ -5,6 +5,8 @@ import Footer from '@/components/layout/Footer'
 import ProductDetailClient from '@/components/products/ProductDetailClient'
 import ProductCard from '@/components/products/ProductCard'
 import { prisma } from '@/lib/prisma'
+import { verifyAccessTokenEdge } from '@/lib/auth-edge'
+import { cookies } from 'next/headers'
 import { ChevronRight, Home } from 'lucide-react'
 
 interface ProductDetailPageProps {
@@ -95,11 +97,37 @@ async function getRelatedProducts(categoryId: string, excludeSlug: string, local
     }))
 }
 
+async function checkIsWishlisted(productId: string) {
+    try {
+        const cookieStore = await cookies()
+        const token = cookieStore.get('accessToken')?.value
+        if (!token) return false
+
+        const payload = await verifyAccessTokenEdge(token)
+        if (!payload) return false
+
+        const count = await prisma.wishlist.count({
+            where: {
+                userId: payload.userId as string,
+                productId: productId
+            }
+        })
+
+        return count > 0
+    } catch {
+        return false
+    }
+}
+
+import { getGeneralSettings, getAnnouncementSettings } from '@/lib/settings'
+
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
     const { locale, slug } = await params
     const isTr = locale === 'tr'
 
     const product = await getProduct(slug, locale)
+    const general = await getGeneralSettings()
+    const announcement = await getAnnouncementSettings()
 
     if (!product) {
         notFound()
@@ -107,52 +135,85 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
     const relatedProducts = await getRelatedProducts(product.categoryId, product.slug, locale)
 
+    // Check if main product is wishlisted
+    const isWishlisted = await checkIsWishlisted(product.id)
+
+    // We can also fetch wishlist IDs for related products if we want them to show hearts,
+    // but for now let's focus on the main product detail as requested.
+    // Actually, user expects related products to also have correct state.
+
+    // Re-use logic for related products
+    const cookieStore = await cookies()
+    const token = cookieStore.get('accessToken')?.value
+    let wishlistIds = new Set<string>()
+    if (token) {
+        try {
+            const payload = await verifyAccessTokenEdge(token)
+            if (payload) {
+                const items = await prisma.wishlist.findMany({
+                    where: { userId: payload.userId as string },
+                    select: { productId: true }
+                })
+                wishlistIds = new Set(items.map(i => i.productId))
+            }
+        } catch { }
+    }
+
     return (
         <div className="min-h-screen flex flex-col">
-            <Header locale={locale} />
-
+            <Header locale={locale} settings={{ general, announcement }} />
             <main className="flex-1 bg-background">
-                <div className="container py-6">
-                    {/* Breadcrumb */}
-                    <nav className="flex items-center gap-2 text-sm mb-8 text-text-muted">
-                        <Link href={`/${locale}`} className="hover:text-secondary flex items-center gap-1">
-                            <Home size={14} />
-                            {isTr ? 'Anasayfa' : 'Home'}
-                        </Link>
-                        <ChevronRight size={14} />
-                        <Link href={`/${locale}/products`} className="hover:text-secondary">
-                            {isTr ? 'Ürünler' : 'Products'}
-                        </Link>
-                        <ChevronRight size={14} />
-                        <Link
-                            href={`/${locale}/products?category=${product.category.slug}`}
-                            className="hover:text-secondary"
-                        >
-                            {product.category.name}
-                        </Link>
-                        <ChevronRight size={14} />
-                        <span className="text-text truncate max-w-[200px]">{product.name}</span>
-                    </nav>
+                <div className="container">
+                    <div className="py-6">
+                        {/* Breadcrumb */}
+                        <nav className="flex items-center gap-2 text-sm mb-8 text-text-muted">
+                            <Link href={`/${locale}`} className="hover:text-secondary flex items-center gap-1">
+                                <Home size={14} />
+                                {isTr ? 'Anasayfa' : 'Home'}
+                            </Link>
+                            <ChevronRight size={14} />
+                            <Link href={`/${locale}/products`} className="hover:text-secondary">
+                                {isTr ? 'Ürünler' : 'Products'}
+                            </Link>
+                            <ChevronRight size={14} />
+                            <Link
+                                href={`/${locale}/products?category=${product.category.slug}`}
+                                className="hover:text-secondary"
+                            >
+                                {product.category.name}
+                            </Link>
+                            <ChevronRight size={14} />
+                            <span className="text-text truncate max-w-[200px]">{product.name}</span>
+                        </nav>
 
-                    {/* Product Detail */}
-                    <ProductDetailClient product={product} locale={locale} />
+                        {/* Product Detail */}
+                        <ProductDetailClient
+                            product={product}
+                            locale={locale}
+                            initialIsWishlisted={isWishlisted}
+                        />
 
-                    {/* Related Products */}
-                    {relatedProducts.length > 0 && (
-                        <section className="mt-16 pt-12 border-t border-border">
-                            <h2 className="text-2xl font-bold mb-8">
-                                {isTr ? 'Benzer Ürünler' : 'Related Products'}
-                            </h2>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                                {relatedProducts.map((product) => (
-                                    <ProductCard key={product.id} product={product} locale={locale} />
-                                ))}
-                            </div>
-                        </section>
-                    )}
+                        {/* Related Products */}
+                        {relatedProducts.length > 0 && (
+                            <section className="mt-16 pt-12 border-t border-border">
+                                <h2 className="text-2xl font-bold mb-8">
+                                    {isTr ? 'Benzer Ürünler' : 'Related Products'}
+                                </h2>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                                    {relatedProducts.map((product) => (
+                                        <ProductCard
+                                            key={product.id}
+                                            product={product}
+                                            locale={locale}
+                                            isWishlisted={wishlistIds.has(product.id)}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+                    </div>
                 </div>
             </main>
-
             <Footer locale={locale} />
         </div>
     )
@@ -180,7 +241,7 @@ export async function generateMetadata({ params }: ProductDetailPageProps) {
     const description = locale === 'tr' ? product.description_tr : product.description_en
 
     return {
-        title: `${name} | LUXEBAGS`,
+        title: `${name} | CRAZYSHOES`,
         description: description?.slice(0, 160),
     }
 }

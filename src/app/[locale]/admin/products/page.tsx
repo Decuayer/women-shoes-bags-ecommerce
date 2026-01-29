@@ -51,12 +51,15 @@ export default async function ProductListPage({ params, searchParams }: ProductL
     const localizedProducts = products.map(p => ({
         id: p.id,
         name: isTr ? p.name_tr : p.name_en,
-        price: p.price,
+        price: p.price.toNumber(),
         isActive: p.isActive,
         category: {
             name: isTr ? p.category.name_tr : p.category.name_en
         },
-        variants: p.variants,
+        variants: p.variants.map(v => ({
+            ...v,
+            priceAdjustment: v.priceAdjustment ? v.priceAdjustment.toNumber() : null
+        })),
         images: p.images
     }))
 

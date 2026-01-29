@@ -35,8 +35,10 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
 
     // State for General
     const [general, setGeneral] = useState({
-        siteName: generalSettings?.title_en || 'LUXEBAGS',
-        contactEmail: (generalSettings?.jsonData as any)?.email || 'info@luxebags.com'
+        siteName: generalSettings?.title_en || 'CRAZYSHOES',
+        contactEmail: (generalSettings?.jsonData as any)?.email || 'info@crazyshoes.com',
+        logoText1: (generalSettings?.jsonData as any)?.logoText1 || 'CRAZY',
+        logoText2: (generalSettings?.jsonData as any)?.logoText2 || 'SHOES'
     })
 
     const handleSave = async () => {
@@ -97,7 +99,11 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
                     key: 'site_general',
                     type: 'GENERAL',
                     title_en: general.siteName,
-                    jsonData: { email: general.contactEmail }
+                    jsonData: {
+                        email: general.contactEmail,
+                        logoText1: general.logoText1,
+                        logoText2: general.logoText2
+                    }
                 })
             }))
 
@@ -185,7 +191,6 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
             {/* Content */}
             <div className="bg-surface border border-border rounded-xl p-6">
 
-                {/* GENERAL TAB */}
                 {activeTab === 'general' && (
                     <div className="space-y-4 max-w-lg">
                         <div>
@@ -203,6 +208,26 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
                                 value={general.contactEmail}
                                 onChange={(e) => setGeneral({ ...general, contactEmail: e.target.value })}
                             />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="label">Logo Text 1</label>
+                                <input
+                                    className="input w-full"
+                                    value={general.logoText1}
+                                    onChange={(e) => setGeneral({ ...general, logoText1: e.target.value })}
+                                />
+                                <p className="text-xs text-text-muted mt-1">First part (Gradient)</p>
+                            </div>
+                            <div>
+                                <label className="label">Logo Text 2</label>
+                                <input
+                                    className="input w-full"
+                                    value={general.logoText2}
+                                    onChange={(e) => setGeneral({ ...general, logoText2: e.target.value })}
+                                />
+                                <p className="text-xs text-text-muted mt-1">Second part (Light)</p>
+                            </div>
                         </div>
                     </div>
                 )}

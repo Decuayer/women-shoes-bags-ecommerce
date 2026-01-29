@@ -1,139 +1,103 @@
+import { prisma } from '@/lib/prisma'
+import { cookies } from 'next/headers'
+import { verifyAccessTokenEdge } from '@/lib/auth-edge'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
-import { User, Package, Heart, MapPin, CreditCard, Settings, LogOut, ChevronRight } from 'lucide-react'
 
-interface AccountPageProps {
-    params: Promise<{ locale: string }>
-}
-
-export default async function AccountPage({ params }: AccountPageProps) {
+export default async function AccountPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params
     const isTr = locale === 'tr'
 
-    // TODO: Get user from session/cookie
-    const user = {
-        firstName: 'Demo',
-        lastName: 'User',
-        email: 'demo@example.com',
+    const cookieStore = await cookies()
+    const token = cookieStore.get('accessToken')?.value
+
+    if (!token) {
+        redirect(`/${locale}/auth/login`)
     }
 
-    const menuItems = [
-        {
-            icon: Package,
-            label: isTr ? 'Siparişlerim' : 'My Orders',
-            href: `/${locale}/account/orders`,
-            description: isTr ? 'Sipariş geçmişi ve takip' : 'Order history and tracking',
-        },
-        {
-            icon: Heart,
-            label: isTr ? 'Favorilerim' : 'Wishlist',
-            href: `/${locale}/wishlist`,
-            description: isTr ? 'Beğendiğiniz ürünler' : 'Products you love',
-        },
-        {
-            icon: MapPin,
-            label: isTr ? 'Adreslerim' : 'Addresses',
-            href: `/${locale}/account/addresses`,
-            description: isTr ? 'Teslimat adresleri' : 'Delivery addresses',
-        },
-        {
-            icon: CreditCard,
-            label: isTr ? 'Ödeme Yöntemlerim' : 'Payment Methods',
-            href: `/${locale}/account/payments`,
-            description: isTr ? 'Kayıtlı kartlar' : 'Saved cards',
-        },
-        {
-            icon: Settings,
-            label: isTr ? 'Hesap Ayarları' : 'Account Settings',
-            href: `/${locale}/account/settings`,
-            description: isTr ? 'Profil ve şifre' : 'Profile and password',
-        },
-    ]
+    const payload = await verifyAccessTokenEdge(token)
+    if (!payload) {
+        redirect(`/${locale}/auth/login`)
+    }
+
+    // Parallel fetch for valid user data and counts
+    const [user, ordersCount, wishlistCount, addressCount] = await Promise.all([
+        prisma.user.findUnique({
+            where: { id: payload.userId as string },
+            select: { firstName: true, role: true }
+        }),
+        prisma.order.count({
+            where: { userId: payload.userId as string }
+        }),
+        prisma.wishlist.count({
+            where: { userId: payload.userId as string }
+        }),
+        prisma.address.count({
+            where: { userId: payload.userId as string }
+        })
+    ])
 
     return (
-        <div className="min-h-screen flex flex-col">
-            <Header locale={locale} />
+        <div>
+            <h1 className="text-2xl font-bold mb-6">
+                {isTr ? 'Hesap Özeti' : 'Dashboard'}
+            </h1>
 
-            <main className="flex-1 bg-background">
-                <div className="container py-8">
-                    <h1 className="text-3xl font-bold mb-8">{isTr ? 'Hesabım' : 'My Account'}</h1>
-
-                    <div className="grid lg:grid-cols-3 gap-8">
-                        {/* User Info Card */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-surface rounded-xl border border-border p-6">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center">
-                                        <User size={32} className="text-secondary" />
-                                    </div>
-                                    <div>
-                                        <h2 className="font-semibold">{user.firstName} {user.lastName}</h2>
-                                        <p className="text-sm text-text-muted">{user.email}</p>
-                                    </div>
-                                </div>
-
-                                <Link
-                                    href={`/${locale}/account/settings`}
-                                    className="btn btn-secondary w-full"
-                                >
-                                    {isTr ? 'Profili Düzenle' : 'Edit Profile'}
-                                </Link>
-                            </div>
-                        </div>
-
-                        {/* Menu Items */}
-                        <div className="lg:col-span-2 space-y-3">
-                            {menuItems.map((item) => (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border hover:border-secondary transition-colors group"
-                                >
-                                    <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
-                                        <item.icon size={24} className="text-secondary" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-medium group-hover:text-secondary transition-colors">
-                                            {item.label}
-                                        </h3>
-                                        <p className="text-sm text-text-muted">{item.description}</p>
-                                    </div>
-                                    <ChevronRight size={20} className="text-text-dark group-hover:text-secondary transition-colors" />
-                                </Link>
-                            ))}
-
-                            {/* Logout */}
-                            <button className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border hover:border-error transition-colors group w-full text-left">
-                                <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center">
-                                    <LogOut size={24} className="text-error" />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-medium text-error">
-                                        {isTr ? 'Çıkış Yap' : 'Sign Out'}
-                                    </h3>
-                                    <p className="text-sm text-text-muted">
-                                        {isTr ? 'Hesabınızdan çıkış yapın' : 'Sign out of your account'}
-                                    </p>
-                                </div>
-                            </button>
-                        </div>
+            {user?.role === 'ADMIN' && (
+                <div className="bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 rounded-xl p-6 mb-8 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-lg font-bold text-secondary mb-1">
+                            {isTr ? 'Yönetici Erişimi' : 'Admin Access'}
+                        </h2>
+                        <p className="text-sm text-text-muted">
+                            {isTr
+                                ? 'Mağaza yönetim paneline buradan ulaşabilirsiniz.'
+                                : 'Access store management panel from here.'}
+                        </p>
                     </div>
+                    <Link
+                        href={`/${locale}/admin`}
+                        className="btn btn-primary whitespace-nowrap"
+                    >
+                        {isTr ? 'Admin Paneline Git' : 'Go to Admin Panel'}
+                    </Link>
                 </div>
-            </main>
+            )}
 
-            <Footer locale={locale} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-background border border-border p-6 rounded-xl">
+                    <div className="text-text-muted text-sm mb-1">
+                        {isTr ? 'Toplam Sipariş' : 'Total Orders'}
+                    </div>
+                    <div className="text-3xl font-bold">{ordersCount}</div>
+                </div>
+
+                <div className="bg-background border border-border p-6 rounded-xl">
+                    <div className="text-text-muted text-sm mb-1">
+                        {isTr ? 'Favoriler' : 'Wishlist'}
+                    </div>
+                    <div className="text-3xl font-bold">{wishlistCount}</div>
+                </div>
+
+                <div className="bg-background border border-border p-6 rounded-xl">
+                    <div className="text-text-muted text-sm mb-1">
+                        {isTr ? 'Kayıtlı Adresler' : 'Saved Addresses'}
+                    </div>
+                    <div className="text-3xl font-bold">{addressCount}</div>
+                </div>
+            </div>
+
+            <div className="bg-primary/5 border border-primary/10 rounded-xl p-6">
+                <h2 className="text-lg font-semibold mb-2">
+                    {isTr ? `Hoş geldiniz, ${user?.firstName}!` : `Welcome back, ${user?.firstName}!`}
+                </h2>
+                <p className="text-text-muted">
+                    {isTr
+                        ? 'Hesap paneline hoş geldiniz. Buradan siparişlerinizi takip edebilir, favori ürünlerinizi görüntüleyebilir ve hesap ayarlarınızı yönetebilirsiniz.'
+                        : 'Welcome to your account dashboard. Here you can track your orders, view your favorite products, and manage your account settings.'
+                    }
+                </p>
+            </div>
         </div>
     )
-}
-
-export async function generateMetadata({ params }: AccountPageProps) {
-    const { locale } = await params
-
-    return {
-        title: locale === 'tr' ? 'Hesabım | LUXEBAGS' : 'My Account | LUXEBAGS',
-        description: locale === 'tr'
-            ? 'Hesap bilgilerinizi yönetin'
-            : 'Manage your account',
-    }
 }

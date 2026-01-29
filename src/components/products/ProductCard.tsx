@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Heart, ShoppingBag, Star } from 'lucide-react'
+import WishlistButton from './WishlistButton'
 
 interface ProductCardProps {
     product: {
@@ -19,9 +20,10 @@ interface ProductCardProps {
         rating?: number
     }
     locale: string
+    isWishlisted?: boolean
 }
 
-export default function ProductCard({ product, locale }: ProductCardProps) {
+export default function ProductCard({ product, locale, isWishlisted = false }: ProductCardProps) {
     const discount = product.compareAtPrice
         ? Math.round((1 - product.price / product.compareAtPrice) * 100)
         : null
@@ -50,12 +52,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                     >
                         <ShoppingBag size={20} />
                     </button>
-                    <button
-                        className="w-12 h-12 rounded-full bg-surface text-text flex items-center justify-center hover:bg-error hover:text-white transition-colors"
-                        aria-label="Add to wishlist"
-                    >
-                        <Heart size={20} />
-                    </button>
+                    <WishlistButton
+                        productId={product.id}
+                        className="w-12 h-12 rounded-full bg-surface text-text hover:bg-error hover:text-white"
+                    />
                 </div>
 
                 {/* Discount Badge */}

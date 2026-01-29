@@ -11,13 +11,15 @@ import {
     Shield,
     RefreshCw
 } from 'lucide-react'
+import { getGeneralSettings } from '@/lib/settings'
 
 interface FooterProps {
     locale: string
 }
 
-export default function Footer({ locale }: FooterProps) {
+export default async function Footer({ locale }: FooterProps) {
     const isTr = locale === 'tr'
+    const settings = await getGeneralSettings()
 
     const footerLinks = {
         shop: {
@@ -52,7 +54,7 @@ export default function Footer({ locale }: FooterProps) {
         {
             icon: Truck,
             title: isTr ? 'Ücretsiz Kargo' : 'Free Shipping',
-            desc: isTr ? '500 TL üzeri siparişlerde' : 'On orders over 500 TL'
+            desc: isTr ? '1500 TL üzeri siparişlerde' : 'On orders over 1500 TL'
         },
         {
             icon: RefreshCw,
@@ -76,7 +78,7 @@ export default function Footer({ locale }: FooterProps) {
             {/* Features Bar */}
             <div className="border-b border-border">
                 <div className="container py-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 my-4">
                         {features.map((feature, index) => (
                             <div key={index} className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
@@ -94,13 +96,13 @@ export default function Footer({ locale }: FooterProps) {
 
             {/* Main Footer */}
             <div className="container py-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 my-4">
                     {/* Brand */}
                     <div className="lg:col-span-2">
                         <Link href={`/${locale}`} className="inline-block mb-4">
                             <span className="text-2xl font-bold">
-                                <span className="gradient-text">LUXE</span>
-                                <span className="text-text-muted font-light">BAGS</span>
+                                <span className="gradient-text">{settings.logoText1}</span>
+                                <span className="text-text-muted font-light">{settings.logoText2}</span>
                             </span>
                         </Link>
                         <p className="text-text-muted text-sm mb-6 max-w-sm">
@@ -116,9 +118,9 @@ export default function Footer({ locale }: FooterProps) {
                                 <Phone size={16} />
                                 +90 212 123 45 67
                             </a>
-                            <a href="mailto:info@luxebags.com" className="flex items-center gap-2 hover:text-secondary">
+                            <a href={`mailto:${settings.contactEmail}`} className="flex items-center gap-2 hover:text-secondary">
                                 <Mail size={16} />
-                                info@luxebags.com
+                                {settings.contactEmail}
                             </a>
                             <p className="flex items-center gap-2">
                                 <MapPin size={16} />
@@ -163,12 +165,26 @@ export default function Footer({ locale }: FooterProps) {
 
             {/* Bottom Bar */}
             <div className="border-t border-border">
-                <div className="container py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-text-muted">
-                    <p>© 2024 LUXEBAGS. {isTr ? 'Tüm hakları saklıdır.' : 'All rights reserved.'}</p>
-                    <div className="flex items-center gap-4">
-                        <img src="/images/payment/visa.svg" alt="Visa" className="h-6 opacity-60" />
-                        <img src="/images/payment/mastercard.svg" alt="Mastercard" className="h-6 opacity-60" />
-                        <img src="/images/payment/iyzico.svg" alt="iyzico" className="h-6 opacity-60" />
+                <div className="container">
+                    <div className=" py-2 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-text-muted">
+                        <p>© {new Date().getFullYear()} {settings.siteName}. {isTr ? 'Tüm hakları saklıdır.' : 'All rights reserved.'}</p>
+                        <div className="flex items-center gap-6">
+                            <img
+                                src="/images/payment/visa.svg"
+                                alt="Visa"
+                                className="h-5 w-10 object-contain grayscale opacity-50 hover:opacity-100 transition-opacity"
+                            />
+                            <img
+                                src="/images/payment/mastercard.svg"
+                                alt="Mastercard"
+                                className="h-5 w-10 object-contain grayscale opacity-50 hover:opacity-100 transition-opacity"
+                            />
+                            <img
+                                src="/images/payment/iyzico.svg"
+                                alt="iyzico"
+                                className="h-5 w-10 object-contain grayscale opacity-50 hover:opacity-100 transition-opacity"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

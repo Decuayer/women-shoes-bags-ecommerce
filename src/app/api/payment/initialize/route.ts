@@ -2,18 +2,60 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import iyzico from '@/lib/iyzipay'
 import { nanoid } from 'nanoid'
+import { cookies } from 'next/headers'
+import { verifyAccessTokenEdge } from '@/lib/auth-edge'
+import { getShippingSettings } from '@/lib/settings'
 
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { user, address, cartItems, locale } = body
+        const { address, cartItems, locale } = body
         const isTr = locale === 'tr'
 
-        if (!user || !address || !cartItems || cartItems.length === 0) {
+        // Securely get user from token
+        const cookieStore = await cookies()
+        const token = cookieStore.get('accessToken')?.value
+
+        let userId = null
+        let userEmail = 'guest@example.com'
+        let userFirstName = 'Guest'
+        let userLastName = 'User'
+        let userPhone = '+905555555555'
+
+        if (token) {
+            const payload = await verifyAccessTokenEdge(token)
+            if (payload) {
+                userId = payload.userId as string
+                userEmail = payload.email as string
+                // Ideally fetch full user profile to get phone/name if missing in token
+                // For now, trusting client body for address/name but ensuring userId is from token
+            }
+        }
+
+        // Additional safety: If restrictions are on, reject if no userId
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Get user details from DB to ensure fresh data for iyzico
+        const dbUser = await prisma.user.findUnique({
+            where: { id: userId }
+        })
+
+        if (dbUser) {
+            userFirstName = dbUser.firstName
+            userLastName = dbUser.lastName
+            userPhone = dbUser.phone || userPhone
+            userEmail = dbUser.email
+        }
+
+        if (!address || !cartItems || cartItems.length === 0) {
             return NextResponse.json({ error: 'Missing required data' }, { status: 400 })
         }
 
         // 1. Calculate Totals
+        const { freeShippingThreshold, shippingCost: baseShippingCost } = await getShippingSettings()
+
         let subtotal = 0
         const items = []
 
@@ -45,7 +87,7 @@ export async function POST(request: Request) {
             })
         }
 
-        const shippingCost = subtotal > 1500 ? 0 : 50 // Example logic
+        const shippingCost = subtotal >= freeShippingThreshold ? 0 : baseShippingCost
         const total = subtotal + shippingCost
 
         // 2. Create Pending Order
@@ -54,7 +96,7 @@ export async function POST(request: Request) {
         const order = await prisma.order.create({
             data: {
                 orderNumber,
-                userId: user.id,
+                userId: userId,
                 status: 'PENDING',
                 subtotal,
                 shippingCost,
@@ -92,7 +134,7 @@ export async function POST(request: Request) {
         const requestData = {
             locale: isTr ? 'tr' : 'en',
             conversationId: order.id,
-            price: total.toFixed(2),
+            price: subtotal.toFixed(2),
             paidPrice: total.toFixed(2),
             currency: 'TRY',
             basketId: orderNumber,
@@ -100,11 +142,11 @@ export async function POST(request: Request) {
             callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/callback`,
             enabledInstallments: [1, 2, 3, 6, 9],
             buyer: {
-                id: user.id,
-                name: user.firstName || 'Guest',
-                surname: user.lastName || 'User',
-                gsmNumber: user.phone || '+905555555555',
-                email: user.email,
+                id: userId || 'guest',
+                name: userFirstName,
+                surname: userLastName,
+                gsmNumber: userPhone,
+                email: userEmail,
                 identityNumber: '11111111111', // Mandatory but can be placeholder for guest
                 registrationAddress: address.addressLine1,
                 ip: '85.34.78.112', // Should get real IP in prod

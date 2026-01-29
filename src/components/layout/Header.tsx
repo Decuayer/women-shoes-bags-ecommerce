@@ -16,11 +16,17 @@ import {
 import { useCart } from '@/components/cart/CartContext'
 import CartDrawer from '@/components/cart/CartDrawer'
 
+import { GeneralSettings, AnnouncementSettings } from '@/lib/settings'
+
 interface HeaderProps {
     locale: string
+    settings: {
+        general: GeneralSettings
+        announcement: AnnouncementSettings
+    }
 }
 
-export default function Header({ locale }: HeaderProps) {
+export default function Header({ locale, settings }: HeaderProps) {
     const t = useTranslations('common')
     const pathname = usePathname()
     const { itemCount } = useCart()
@@ -42,12 +48,14 @@ export default function Header({ locale }: HeaderProps) {
         <>
             <header className="sticky top-0 z-50 glass">
                 {/* Top Bar */}
-                <div className="bg-secondary text-primary text-center py-2 text-sm font-medium">
-                    {locale === 'tr'
-                        ? '🚚 500 TL ve üzeri alışverişlerde ücretsiz kargo!'
-                        : '🚚 Free shipping on orders over 500 TL!'
-                    }
-                </div>
+                {settings.announcement.isActive && (
+                    <div className="bg-secondary text-primary text-center py-2 text-sm font-medium">
+                        {locale === 'tr'
+                            ? settings.announcement.text_tr
+                            : settings.announcement.text_en
+                        }
+                    </div>
+                )}
 
                 {/* Main Header */}
                 <div className="container">
@@ -64,8 +72,8 @@ export default function Header({ locale }: HeaderProps) {
                         {/* Logo */}
                         <Link href={`/${locale}`} className="flex items-center gap-2">
                             <span className="text-xl md:text-2xl font-bold">
-                                <span className="gradient-text">LUXE</span>
-                                <span className="text-text-muted font-light">BAGS</span>
+                                <span className="gradient-text">{settings.general.logoText1}</span>
+                                <span className="text-text-muted font-light">{settings.general.logoText2}</span>
                             </span>
                         </Link>
 
@@ -95,7 +103,7 @@ export default function Header({ locale }: HeaderProps) {
                             </button>
 
                             {/* Wishlist - Hidden on mobile */}
-                            <Link href={`/${locale}/wishlist`} className="btn-ghost p-2 hidden md:flex">
+                            <Link href={`/${locale}/account/favorites`} className="btn-ghost p-2 hidden md:flex">
                                 <Heart size={20} />
                             </Link>
 
@@ -133,21 +141,35 @@ export default function Header({ locale }: HeaderProps) {
                     {/* Search Bar */}
                     {isSearchOpen && (
                         <div className="py-4 animate-fadeIn">
-                            <div className="relative">
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault()
+                                    // Get form data
+                                    const formData = new FormData(e.currentTarget)
+                                    const query = formData.get('q') as string
+                                    if (query.trim()) {
+                                        window.location.href = `/${locale}/products?search=${encodeURIComponent(query)}`
+                                        setIsSearchOpen(false)
+                                    }
+                                }}
+                                className="relative"
+                            >
                                 <input
                                     type="text"
+                                    name="q"
                                     placeholder={locale === 'tr' ? 'Ürün ara...' : 'Search products...'}
-                                    className="input pl-12 pr-4"
+                                    className="input !pl-12 pr-4"
                                     autoFocus
                                 />
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dark" size={20} />
                                 <button
+                                    type="button"
                                     className="absolute right-4 top-1/2 -translate-y-1/2 text-text-dark hover:text-text"
                                     onClick={() => setIsSearchOpen(false)}
                                 >
                                     <X size={20} />
                                 </button>
-                            </div>
+                            </form>
                         </div>
                     )}
                 </div>
@@ -161,8 +183,8 @@ export default function Header({ locale }: HeaderProps) {
                                     key={link.href}
                                     href={link.href}
                                     className={`py-3 px-4 rounded-lg transition-colors ${pathname === link.href
-                                            ? 'bg-secondary text-primary'
-                                            : 'text-text-muted hover:bg-surface'
+                                        ? 'bg-secondary text-primary'
+                                        : 'text-text-muted hover:bg-surface'
                                         }`}
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
@@ -179,7 +201,7 @@ export default function Header({ locale }: HeaderProps) {
                                 {locale === 'tr' ? 'Hesabım' : 'My Account'}
                             </Link>
                             <Link
-                                href={`/${locale}/wishlist`}
+                                href={`/${locale}/account/favorites`}
                                 className="py-3 px-4 rounded-lg text-text-muted hover:bg-surface flex items-center gap-3"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >

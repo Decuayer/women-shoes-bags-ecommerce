@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
+import { Prisma, OrderStatus } from '@prisma/client'
 
 export async function GET(request: Request) {
     try {
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
         const skip = (page - 1) * limit
 
         const where: Prisma.OrderWhereInput = {
-            ...(status && { status }),
+            ...(status && { status: status as OrderStatus }),
             ...(search && {
                 OR: [
                     { orderNumber: { contains: search, mode: 'insensitive' } },

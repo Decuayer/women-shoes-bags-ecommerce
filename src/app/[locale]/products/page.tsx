@@ -160,15 +160,50 @@ async function getFilterOptions() {
     }
 }
 
+async function getWishlistIds() {
+    try {
+        const { cookies } = await import('next/headers')
+        const { verifyAccessTokenEdge } = await import('@/lib/auth-edge')
+
+        const cookieStore = await cookies()
+        const token = cookieStore.get('accessToken')?.value
+        if (!token) return new Set<string>()
+
+        const payload = await verifyAccessTokenEdge(token)
+        if (!payload) return new Set<string>()
+
+        const wishlistItems = await prisma.wishlist.findMany({
+            where: { userId: payload.userId as string },
+            select: { productId: true }
+        })
+
+        return new Set(wishlistItems.map(item => item.productId))
+    } catch (e) {
+        return new Set<string>()
+    }
+}
+
+import { getGeneralSettings, getAnnouncementSettings } from '@/lib/settings'
+
 export default async function ProductsPage({ params, searchParams }: ProductsPageProps) {
     const { locale } = await params
     const filters = await searchParams
     const isTr = locale === 'tr'
 
-    const [{ products, total, page, totalPages }, categories, filterOptions] = await Promise.all([
+    const [
+        { products, total, page, totalPages },
+        categories,
+        filterOptions,
+        wishlistIds,
+        general,
+        announcement
+    ] = await Promise.all([
         getProducts(locale, filters),
         getCategories(locale),
         getFilterOptions(),
+        getWishlistIds(),
+        getGeneralSettings(),
+        getAnnouncementSettings(),
     ])
 
     // Build pagination URL helper
@@ -186,122 +221,129 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
 
     return (
         <div className="min-h-screen flex flex-col">
-            <Header locale={locale} />
+            <Header locale={locale} settings={{ general, announcement }} />
 
             <main className="flex-1 bg-background">
-                <div className="container py-8">
-                    {/* Page Header */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                            {filters.category
-                                ? categories.find(c => c.slug === filters.category)?.name || (isTr ? 'Ürünler' : 'Products')
-                                : (isTr ? 'Tüm Ürünler' : 'All Products')
-                            }
-                        </h1>
-                        <p className="text-text-muted">
-                            {total} {isTr ? 'ürün bulundu' : 'products found'}
-                        </p>
-                    </div>
+                <div className="container">
+                    <div className=" py-4">
+                        {/* Page Header */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                                {filters.category
+                                    ? categories.find(c => c.slug === filters.category)?.name || (isTr ? 'Ürünler' : 'Products')
+                                    : (isTr ? 'Tüm Ürünler' : 'All Products')
+                                }
+                            </h1>
+                            <p className="text-text-muted">
+                                {total} {isTr ? 'ürün bulundu' : 'products found'}
+                            </p>
+                        </div>
 
-                    <div className="flex gap-8">
-                        {/* Filters Sidebar */}
-                        <Suspense fallback={<div className="hidden lg:block w-64 shrink-0 skeleton h-96" />}>
-                            <ProductFilters
-                                locale={locale}
-                                categories={categories}
-                                colors={filterOptions.colors}
-                                sizes={filterOptions.sizes}
-                            />
-                        </Suspense>
+                        <div className="flex gap-8">
+                            {/* Filters Sidebar */}
+                            <Suspense fallback={<div className="hidden lg:block w-64 shrink-0 skeleton h-96" />}>
+                                <ProductFilters
+                                    locale={locale}
+                                    categories={categories}
+                                    colors={filterOptions.colors}
+                                    sizes={filterOptions.sizes}
+                                />
+                            </Suspense>
 
-                        {/* Products Grid */}
-                        <div className="flex-1">
-                            {/* Sort Bar */}
-                            <div className="flex items-center justify-between mb-6 p-4 bg-surface rounded-xl border border-border">
-                                <span className="text-sm text-text-muted">
-                                    {isTr ? 'Sayfa' : 'Page'} {page} / {totalPages}
-                                </span>
-                                <Suspense fallback={<div className="skeleton w-40 h-10" />}>
-                                    <ProductSort locale={locale} />
-                                </Suspense>
-                            </div>
-
-                            {/* Products */}
-                            {products.length > 0 ? (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                                    {products.map((product) => (
-                                        <ProductCard key={product.id} product={product} locale={locale} />
-                                    ))}
+                            {/* Products Grid */}
+                            <div className="flex-1">
+                                {/* Sort Bar */}
+                                <div className="flex items-center justify-between mb-6 p-4 bg-surface rounded-xl border border-border">
+                                    <span className="text-sm text-text-muted">
+                                        {isTr ? 'Sayfa' : 'Page'} {page} / {totalPages}
+                                    </span>
+                                    <Suspense fallback={<div className="skeleton w-40 h-10" />}>
+                                        <ProductSort locale={locale} />
+                                    </Suspense>
                                 </div>
-                            ) : (
-                                <div className="text-center py-16">
-                                    <Package size={64} className="mx-auto text-text-dark mb-4" />
-                                    <h3 className="text-xl font-medium mb-2">
-                                        {isTr ? 'Ürün bulunamadı' : 'No products found'}
-                                    </h3>
-                                    <p className="text-text-muted mb-6">
-                                        {isTr
-                                            ? 'Arama kriterlerinize uygun ürün bulunamadı.'
-                                            : 'No products match your search criteria.'
-                                        }
-                                    </p>
-                                    <Link href={`/${locale}/products`} className="btn btn-primary">
-                                        {isTr ? 'Tüm Ürünleri Gör' : 'View All Products'}
-                                    </Link>
-                                </div>
-                            )}
 
-                            {/* Pagination */}
-                            {totalPages > 1 && (
-                                <div className="flex items-center justify-center gap-2 mt-12">
-                                    {page > 1 && (
-                                        <Link
-                                            href={buildPageUrl(page - 1)}
-                                            className="btn btn-ghost p-3"
-                                        >
-                                            <ChevronLeft size={20} />
+                                {/* Products */}
+                                {products.length > 0 ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                                        {products.map((product) => (
+                                            <ProductCard
+                                                key={product.id}
+                                                product={product}
+                                                locale={locale}
+                                                isWishlisted={wishlistIds.has(product.id)}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-16">
+                                        <Package size={64} className="mx-auto text-text-dark mb-4" />
+                                        <h3 className="text-xl font-medium mb-2">
+                                            {isTr ? 'Ürün bulunamadı' : 'No products found'}
+                                        </h3>
+                                        <p className="text-text-muted mb-6">
+                                            {isTr
+                                                ? 'Arama kriterlerinize uygun ürün bulunamadı.'
+                                                : 'No products match your search criteria.'
+                                            }
+                                        </p>
+                                        <Link href={`/${locale}/products`} className="btn btn-primary">
+                                            {isTr ? 'Tüm Ürünleri Gör' : 'View All Products'}
                                         </Link>
-                                    )}
+                                    </div>
+                                )}
 
-                                    {[...Array(totalPages)].map((_, i) => {
-                                        const pageNum = i + 1
-                                        // Show first, last, current, and adjacent pages
-                                        if (
-                                            pageNum === 1 ||
-                                            pageNum === totalPages ||
-                                            (pageNum >= page - 1 && pageNum <= page + 1)
-                                        ) {
-                                            return (
-                                                <Link
-                                                    key={pageNum}
-                                                    href={buildPageUrl(pageNum)}
-                                                    className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${pageNum === page
+                                {/* Pagination */}
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-center gap-2 mt-12">
+                                        {page > 1 && (
+                                            <Link
+                                                href={buildPageUrl(page - 1)}
+                                                className="btn btn-ghost p-3"
+                                            >
+                                                <ChevronLeft size={20} />
+                                            </Link>
+                                        )}
+
+                                        {[...Array(totalPages)].map((_, i) => {
+                                            const pageNum = i + 1
+                                            // Show first, last, current, and adjacent pages
+                                            if (
+                                                pageNum === 1 ||
+                                                pageNum === totalPages ||
+                                                (pageNum >= page - 1 && pageNum <= page + 1)
+                                            ) {
+                                                return (
+                                                    <Link
+                                                        key={pageNum}
+                                                        href={buildPageUrl(pageNum)}
+                                                        className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${pageNum === page
                                                             ? 'bg-secondary text-primary'
                                                             : 'bg-surface hover:bg-surface-light text-text-muted'
-                                                        }`}
-                                                >
-                                                    {pageNum}
-                                                </Link>
-                                            )
-                                        } else if (
-                                            (pageNum === page - 2 && page > 3) ||
-                                            (pageNum === page + 2 && page < totalPages - 2)
-                                        ) {
-                                            return <span key={pageNum} className="text-text-dark">...</span>
-                                        }
-                                        return null
-                                    })}
+                                                            }`}
+                                                    >
+                                                        {pageNum}
+                                                    </Link>
+                                                )
+                                            } else if (
+                                                (pageNum === page - 2 && page > 3) ||
+                                                (pageNum === page + 2 && page < totalPages - 2)
+                                            ) {
+                                                return <span key={pageNum} className="text-text-dark">...</span>
+                                            }
+                                            return null
+                                        })}
 
-                                    {page < totalPages && (
-                                        <Link
-                                            href={buildPageUrl(page + 1)}
-                                            className="btn btn-ghost p-3"
-                                        >
-                                            <ChevronRight size={20} />
-                                        </Link>
-                                    )}
-                                </div>
-                            )}
+                                        {page < totalPages && (
+                                            <Link
+                                                href={buildPageUrl(page + 1)}
+                                                className="btn btn-ghost p-3"
+                                            >
+                                                <ChevronRight size={20} />
+                                            </Link>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

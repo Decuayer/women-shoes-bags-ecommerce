@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ShoppingBag, Heart, Share2, Minus, Plus, Check, Truck, RefreshCw, Shield } from 'lucide-react'
 import ProductGallery from './ProductGallery'
 import VariantSelector from './VariantSelector'
+import WishlistButton from './WishlistButton'
 import { useCart } from '@/components/cart/CartContext'
 
 interface Variant {
@@ -37,9 +38,10 @@ interface ProductDetailClientProps {
         variants: Variant[]
     }
     locale: string
+    initialIsWishlisted?: boolean
 }
 
-export default function ProductDetailClient({ product, locale }: ProductDetailClientProps) {
+export default function ProductDetailClient({ product, locale, initialIsWishlisted = false }: ProductDetailClientProps) {
     const isTr = locale === 'tr'
     const { addItem } = useCart()
     const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
@@ -67,6 +69,7 @@ export default function ProductDetailClient({ product, locale }: ProductDetailCl
             color: selectedVariant.color,
             stock: selectedVariant.stock,
             slug: product.slug,
+            quantity: quantity
         })
 
         setIsAdded(true)
@@ -77,7 +80,7 @@ export default function ProductDetailClient({ product, locale }: ProductDetailCl
         {
             icon: Truck,
             title: isTr ? 'Ücretsiz Kargo' : 'Free Shipping',
-            desc: isTr ? '500 TL üzeri siparişlerde' : 'On orders over 500 TL'
+            desc: isTr ? '1500 TL üzeri siparişlerde' : 'On orders over 1500 TL'
         },
         {
             icon: RefreshCw,
@@ -173,13 +176,12 @@ export default function ProductDetailClient({ product, locale }: ProductDetailCl
                         <ShoppingBag size={20} />
                         {isTr ? 'Sepete Ekle' : 'Add to Cart'}
                     </button>
-                    <button
-                        onClick={() => setIsWishlisted(!isWishlisted)}
-                        className={`btn btn-secondary w-12 ${isWishlisted ? 'text-error border-error' : ''}`}
-                    >
-                        <Heart size={20} className={isWishlisted ? 'fill-error' : ''} />
-                    </button>
-                    <button className="btn btn-secondary w-12">
+                    <WishlistButton
+                        productId={product.id}
+                        initialIsWishlisted={initialIsWishlisted}
+                        className="w-12 h-12 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0 hover:border-secondary transition-colors"
+                    />
+                    <button className="w-12 h-12 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0 hover:border-secondary hover:text-secondary transition-colors">
                         <Share2 size={20} />
                     </button>
                 </div>
