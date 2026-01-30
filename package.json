@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
-    "studio": "NODE_TLS_REJECT_UNAUTHORIZED=0 prisma studio"
+    "studio": "NODE_TLS_REJECT_UNAUTHORIZED=0 prisma studio",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
