@@ -9,15 +9,30 @@ if (process.env.NODE_ENV !== 'production') {
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
+  pool: Pool | undefined
 }
 
-// Create connection pool for Supabase/PostgreSQL with SSL
-const connectionString = process.env.DATABASE_URL!
-const pool = new Pool({
-  connectionString,
-  ssl: { rejectUnauthorized: false } // Supabase requires this
-})
-const adapter = new PrismaPg(pool)
+// Get DATABASE_URL with error handling
+const connectionString = process.env.DATABASE_URL
+
+if (!connectionString) {
+  throw new Error(
+    'DATABASE_URL environment variable is not set. Please add it to your environment variables.'
+  )
+}
+
+// Reuse pool in serverless environment
+if (!globalForPrisma.pool) {
+  globalForPrisma.pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false }, // Supabase requires this
+    max: 1, // Limit connections in serverless environment
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  })
+}
+
+const adapter = new PrismaPg(globalForPrisma.pool)
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   adapter,
@@ -25,3 +40,4 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
 })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
