@@ -23,13 +23,31 @@ if (!connectionString) {
 
 // Reuse pool in serverless environment
 if (!globalForPrisma.pool) {
-  globalForPrisma.pool = new Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false }, // Supabase requires this
-    max: 1, // Limit connections in serverless environment
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
-  })
+  try {
+    globalForPrisma.pool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false }, // Supabase requires this
+      max: 1, // Limit connections in serverless environment
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    })
+
+    // Test connection
+    globalForPrisma.pool.on('error', (err) => {
+      console.error('Unexpected database pool error:', err)
+    })
+
+    globalForPrisma.pool.on('connect', () => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Database connection established')
+      }
+    })
+  } catch (error) {
+    console.error('❌ Failed to create database connection pool:', error)
+    throw new Error(
+      'Database connection failed. Please check your DATABASE_URL and database server status.'
+    )
+  }
 }
 
 const adapter = new PrismaPg(globalForPrisma.pool)

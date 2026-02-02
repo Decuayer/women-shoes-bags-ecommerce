@@ -30,7 +30,7 @@ export default function DataTable<T extends Record<string, any>>({
     data,
     columns,
     keyField,
-    searchPlaceholder = 'Search...',
+    searchPlaceholder = 'Ara...',
     onSearch,
     onDelete,
     editUrl,
@@ -68,7 +68,7 @@ export default function DataTable<T extends Record<string, any>>({
                             ))}
                             {(editUrl || onDelete || actions) && (
                                 <th className="px-6 py-4 text-xs font-semibold uppercase text-text-muted text-right">
-                                    Actions
+                                    İşlemler
                                 </th>
                             )}
                         </tr>
@@ -112,7 +112,7 @@ export default function DataTable<T extends Record<string, any>>({
                         ) : (
                             <tr>
                                 <td colSpan={columns.length + (editUrl || onDelete || actions ? 1 : 0)} className="px-6 py-12 text-center text-text-muted">
-                                    No records found
+                                    Kayıt bulunamadı
                                 </td>
                             </tr>
                         )}
@@ -128,17 +128,17 @@ export default function DataTable<T extends Record<string, any>>({
                         onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
                         className="btn btn-secondary text-sm px-3 py-1 disabled:opacity-50"
                     >
-                        <ChevronLeft size={16} /> Previous
+                        <ChevronLeft size={16} /> Önceki
                     </button>
                     <span className="text-sm text-text-muted">
-                        Page {pagination.currentPage} of {pagination.totalPages}
+                        Sayfa {pagination.currentPage} / {pagination.totalPages}
                     </span>
                     <button
                         disabled={pagination.currentPage === pagination.totalPages}
                         onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
                         className="btn btn-secondary text-sm px-3 py-1 disabled:opacity-50"
                     >
-                        Next <ChevronRight size={16} />
+                        Sonraki <ChevronRight size={16} />
                     </button>
                 </div>
             )}

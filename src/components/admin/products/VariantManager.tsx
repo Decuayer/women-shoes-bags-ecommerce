@@ -46,27 +46,34 @@ export default function VariantManager({ variants, onChange, locale }: VariantMa
     const updateVariant = (index: number, field: keyof Variant, value: string | number) => {
         const newVariants = [...variants]
         newVariants[index] = { ...newVariants[index], [field]: value }
+
+        // Auto-sync Turkish color to English when color_tr changes
+        if (field === 'color_tr') {
+            newVariants[index].color_en = value as string
+            newVariants[index].color = value as string // Sync legacy field
+        }
+
         onChange(newVariants)
     }
 
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h3 className="font-medium">{isTr ? 'Ürün Varyantları' : 'Product Variants'}</h3>
+                <h3 className="font-medium">Ürün Varyantları</h3>
                 <button
                     type="button"
                     onClick={addVariant}
                     className="btn btn-secondary btn-sm flex items-center gap-2"
                 >
-                    <Plus size={16} /> {isTr ? 'Varyant Ekle' : 'Add Variant'}
+                    <Plus size={16} /> Varyant Ekle
                 </button>
             </div>
 
             <div className="space-y-3">
                 {variants.map((variant, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 bg-surface-light border border-border rounded-lg items-end">
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-surface-light border border-border rounded-lg items-end">
                         <div>
-                            <label className="text-xs text-text-muted block mb-1">Color (TR)</label>
+                            <label className="text-xs text-text-muted block mb-1">Renk</label>
                             <input
                                 type="text"
                                 value={variant.color_tr}
@@ -76,20 +83,7 @@ export default function VariantManager({ variants, onChange, locale }: VariantMa
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-text-muted block mb-1">Color (EN)</label>
-                            <input
-                                type="text"
-                                value={variant.color_en}
-                                onChange={(e) => {
-                                    updateVariant(index, 'color_en', e.target.value)
-                                    updateVariant(index, 'color', e.target.value) // Sync legacy
-                                }}
-                                className="input w-full text-sm"
-                                placeholder="Black"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs text-text-muted block mb-1">Hex Code</label>
+                            <label className="text-xs text-text-muted block mb-1">Renk Kodu</label>
                             <div className="flex items-center gap-2">
                                 <input
                                     type="color"
@@ -106,7 +100,7 @@ export default function VariantManager({ variants, onChange, locale }: VariantMa
                             </div>
                         </div>
                         <div>
-                            <label className="text-xs text-text-muted block mb-1">Size</label>
+                            <label className="text-xs text-text-muted block mb-1">Beden</label>
                             <input
                                 type="text"
                                 value={variant.size}
@@ -116,7 +110,7 @@ export default function VariantManager({ variants, onChange, locale }: VariantMa
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-text-muted block mb-1">Stock</label>
+                            <label className="text-xs text-text-muted block mb-1">Stok</label>
                             <input
                                 type="number"
                                 value={variant.stock}
@@ -144,7 +138,7 @@ export default function VariantManager({ variants, onChange, locale }: VariantMa
                 ))}
                 {variants.length === 0 && (
                     <div className="text-center py-6 text-text-muted bg-surface-light/30 border border-dashed border-border rounded-lg">
-                        No variants added. Click "Add Variant" to start.
+                        Henüz varyant eklenmedi. Başlamak için "Varyant Ekle"ye tıklayın.
                     </div>
                 )}
             </div>

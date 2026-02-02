@@ -82,9 +82,13 @@ export default function ProductForm({ initialData, categories, locale }: Product
 
             const finalImages = [...existingImages, ...uploadedImageUrls]
 
-            // Prepare payload
+            // Prepare payload - auto-populate English fields from Turkish
             const payload = {
                 ...formData,
+                // Auto-fill English fields with Turkish content
+                name_en: formData.name_tr,
+                description_en: formData.description_tr,
+                material_en: formData.material_tr,
                 price: Number(formData.price),
                 compareAtPrice: formData.compareAtPrice ? Number(formData.compareAtPrice) : null,
                 images: finalImages,
@@ -109,7 +113,7 @@ export default function ProductForm({ initialData, categories, locale }: Product
             router.refresh()
         } catch (error) {
             console.error('Save error:', error)
-            alert('Failed to save product')
+            alert('Ürün kaydedilemedi')
         } finally {
             setIsLoading(false)
         }
@@ -148,72 +152,53 @@ export default function ProductForm({ initialData, categories, locale }: Product
                     {/* Basic Details */}
                     <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
                         <h2 className="font-bold text-lg mb-4 border-b border-border pb-2">
-                            {isTr ? 'Temel Bilgiler' : 'Basic Information'}
+                            Temel Bilgiler
                         </h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="label">Product Name (EN)</label>
-                                <input
-                                    required
-                                    className="input w-full"
-                                    value={formData.name_en}
-                                    onChange={(e) => handleChange('name_en', e.target.value)}
-                                    placeholder="Black Leather Bag"
-                                />
-                            </div>
-                            <div>
-                                <label className="label">Ürün Adı (TR)</label>
-                                <input
-                                    required
-                                    className="input w-full"
-                                    value={formData.name_tr}
-                                    onChange={(e) => handleChange('name_tr', e.target.value)}
-                                    placeholder="Siyah Deri Çanta"
-                                />
-                            </div>
+                        <div>
+                            <label className="label">Ürün Adı</label>
+                            <input
+                                required
+                                className="input w-full"
+                                value={formData.name_tr}
+                                onChange={(e) => handleChange('name_tr', e.target.value)}
+                                placeholder="Siyah Deri Çanta"
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="label">Category</label>
+                                <label className="label">Kategori</label>
                                 <select
                                     required
                                     className="input w-full"
                                     value={formData.categoryId}
                                     onChange={(e) => handleChange('categoryId', e.target.value)}
                                 >
-                                    <option value="">Select Category</option>
+                                    <option value="">Kategori Seçin</option>
                                     {categories.map(cat => (
                                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="label">Brand</label>
+                                <label className="label">Marka</label>
                                 <input
                                     className="input w-full"
                                     value={formData.brand}
                                     onChange={(e) => handleChange('brand', e.target.value)}
-                                    placeholder="Brand Name"
+                                    placeholder="Marka Adı"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="label">Description (EN)</label>
-                            <textarea
-                                className="input w-full h-32 py-2"
-                                value={formData.description_en}
-                                onChange={(e) => handleChange('description_en', e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="label">Açıklama (TR)</label>
+                            <label className="label">Açıklama</label>
                             <textarea
                                 className="input w-full h-32 py-2"
                                 value={formData.description_tr}
                                 onChange={(e) => handleChange('description_tr', e.target.value)}
+                                placeholder="Ürün açıklamasını buraya yazın..."
                             />
                         </div>
                     </div>
@@ -221,7 +206,7 @@ export default function ProductForm({ initialData, categories, locale }: Product
                     {/* Media */}
                     <div className="bg-surface border border-border rounded-xl p-6">
                         <h2 className="font-bold text-lg mb-4 border-b border-border pb-2">
-                            {isTr ? 'Ürün Görselleri' : 'Product Media'}
+                            Ürün Görselleri
                         </h2>
                         <ImageUploader images={images} onChange={setImages} />
                     </div>
@@ -229,7 +214,7 @@ export default function ProductForm({ initialData, categories, locale }: Product
                     {/* Variants */}
                     <div className="bg-surface border border-border rounded-xl p-6">
                         <h2 className="font-bold text-lg mb-4 border-b border-border pb-2">
-                            {isTr ? 'Varyantlar & Stok' : 'Variants & Stock'}
+                            Varyantlar & Stok
                         </h2>
                         <VariantManager variants={variants} onChange={setVariants} locale={locale} />
                     </div>
@@ -240,26 +225,28 @@ export default function ProductForm({ initialData, categories, locale }: Product
                     {/* Pricing */}
                     <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
                         <h2 className="font-bold text-lg mb-4 border-b border-border pb-2">
-                            {isTr ? 'Fiyatlandırma' : 'Pricing'}
+                            Fiyatlandırma
                         </h2>
 
                         <div>
-                            <label className="label">{isTr ? 'Satış Fiyatı (TL)' : 'Price (TL)'}</label>
+                            <label className="label">Satış Fiyatı (TL)</label>
                             <input
                                 type="number"
                                 required
                                 className="input w-full"
                                 value={formData.price}
                                 onChange={(e) => handleChange('price', e.target.value)}
+                                placeholder="0.00"
                             />
                         </div>
                         <div>
-                            <label className="label">{isTr ? 'İndirimsiz Fiyat (TL)' : 'Compare at Price (TL)'}</label>
+                            <label className="label">İndirimsiz Fiyat (TL)</label>
                             <input
                                 type="number"
                                 className="input w-full"
                                 value={formData.compareAtPrice}
                                 onChange={(e) => handleChange('compareAtPrice', e.target.value)}
+                                placeholder="0.00"
                             />
                         </div>
                     </div>
@@ -267,7 +254,7 @@ export default function ProductForm({ initialData, categories, locale }: Product
                     {/* Status */}
                     <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
                         <h2 className="font-bold text-lg mb-4 border-b border-border pb-2">
-                            {isTr ? 'Durum' : 'Status'}
+                            Durum
                         </h2>
 
                         <label className="flex items-center gap-3 p-3 bg-surface-light rounded-lg border border-border cursor-pointer">
@@ -278,8 +265,8 @@ export default function ProductForm({ initialData, categories, locale }: Product
                                 className="w-5 h-5 accent-secondary"
                             />
                             <div>
-                                <p className="font-medium">{isTr ? 'Aktif' : 'Active'}</p>
-                                <p className="text-xs text-text-muted">Currently available for purchase</p>
+                                <p className="font-medium">Aktif</p>
+                                <p className="text-xs text-text-muted">Şu anda satın alınabilir</p>
                             </div>
                         </label>
 
@@ -291,8 +278,8 @@ export default function ProductForm({ initialData, categories, locale }: Product
                                 className="w-5 h-5 accent-secondary"
                             />
                             <div>
-                                <p className="font-medium">{isTr ? 'Öne Çıkan' : 'Featured'}</p>
-                                <p className="text-xs text-text-muted">Display on homepage</p>
+                                <p className="font-medium">Öne Çıkan</p>
+                                <p className="text-xs text-text-muted">Ana sayfada göster</p>
                             </div>
                         </label>
                     </div>
@@ -300,22 +287,15 @@ export default function ProductForm({ initialData, categories, locale }: Product
                     {/* Extra Info */}
                     <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
                         <h2 className="font-bold text-lg mb-4 border-b border-border pb-2">
-                            {isTr ? 'Ek Özellikler' : 'Extra Features'}
+                            Ek Özellikler
                         </h2>
                         <div>
-                            <label className="label">Material (EN)</label>
-                            <input
-                                className="input w-full"
-                                value={formData.material_en}
-                                onChange={(e) => handleChange('material_en', e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="label">Malzeme (TR)</label>
+                            <label className="label">Malzeme</label>
                             <input
                                 className="input w-full"
                                 value={formData.material_tr}
                                 onChange={(e) => handleChange('material_tr', e.target.value)}
+                                placeholder="Örn: %100 Deri, Pamuk, Süet..."
                             />
                         </div>
                     </div>

@@ -35,7 +35,7 @@ export default function ProductListClient({ data, totalPages, currentPage, local
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this product?')) return
+        if (!confirm('Bu ürünü silmek istediğinizden emin misiniz?')) return
 
         try {
             const res = await fetch(`/api/admin/products/${id}`, {
@@ -45,11 +45,11 @@ export default function ProductListClient({ data, totalPages, currentPage, local
             if (res.ok) {
                 router.refresh()
             } else {
-                alert('Failed to delete product')
+                alert('Ürün silinemedi')
             }
         } catch (error) {
             console.error('Delete error:', error)
-            alert('An error occurred')
+            alert('Bir hata oluştu')
         }
     }
 

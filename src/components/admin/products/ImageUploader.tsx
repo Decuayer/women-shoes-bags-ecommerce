@@ -29,8 +29,6 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
 
     return (
         <div className="space-y-4">
-            <h3 className="font-medium">Product Images</h3>
-
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {images.map((img, index) => (
                     <div key={index} className="relative aspect-square bg-surface-light rounded-lg overflow-hidden group border border-border">
@@ -63,7 +61,7 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                     }}
                 >
                     <Upload className="text-text-muted mb-2" />
-                    <span className="text-sm text-text-muted">Upload Image</span>
+                    <span className="text-sm text-text-muted">Görsel Yükle</span>
                     <input
                         type="file"
                         multiple

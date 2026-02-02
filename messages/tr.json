@@ -110,7 +110,9 @@
         "preparing": "Hazırlanıyor",
         "shipped": "Kargolandı",
         "delivered": "Teslim Edildi",
-        "cancelled": "İptal Edildi"
+        "cancelled": "İptal Edildi",
+        "notifications": "Bildirimler",
+        "switchLanguage": "Dil Değiştir"
     },
     "order": {
         "orderNumber": "Sipariş No",
@@ -120,5 +122,21 @@
         "viewOrder": "Siparişi Görüntüle",
         "myOrders": "Siparişlerim",
         "orderHistory": "Sipariş Geçmişi"
+    },
+    "error": {
+        "title": "Bir Hata Oluştu",
+        "pageNotFound": "Sayfa Bulunamadı",
+        "serverError": "Sunucu Hatası",
+        "databaseError": "Veritabanı Bağlantı Hatası",
+        "generalError": "Beklenmeyen Bir Hata Oluştu",
+        "description": "Üzgünüz, bir şeyler yanlış gitti.",
+        "notFoundDescription": "Aradığınız sayfa bulunamadı veya taşınmış olabilir.",
+        "databaseDescription": "Veritabanına bağlanırken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
+        "tryAgain": "Tekrar Dene",
+        "goHome": "Ana Sayfaya Dön",
+        "backToPrevious": "Geri Dön",
+        "contactSupport": "Destek ile İletişime Geç",
+        "errorCode": "Hata Kodu",
+        "suggestions": "Size Önerebileceğimiz"
     }
 }
