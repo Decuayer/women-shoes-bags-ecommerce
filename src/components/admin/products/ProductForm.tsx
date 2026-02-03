@@ -6,6 +6,7 @@ import { Save, Loader2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import ImageUploader from './ImageUploader'
 import VariantManager from './VariantManager'
+import { useToast } from '@/context/ToastContext'
 
 interface Category {
     id: string
@@ -22,6 +23,7 @@ interface ProductFormProps {
 export default function ProductForm({ initialData, categories, locale }: ProductFormProps) {
     const router = useRouter()
     const isTr = locale === 'tr'
+    const { addToast } = useToast()
     const [isLoading, setIsLoading] = useState(false)
     const [images, setImages] = useState<{ file?: File; url: string }[]>(
         initialData?.images?.map((img: any) => ({ url: img.url })) || []
@@ -107,13 +109,33 @@ export default function ProductForm({ initialData, categories, locale }: Product
                 body: JSON.stringify(payload)
             })
 
-            if (!res.ok) throw new Error('Failed to save product')
+            if (!res.ok) {
+                const errorData = await res.json()
+                throw new Error(errorData.message || 'Failed to save product')
+            }
+
+            const savedProduct = await res.json()
+
+            // Show success toast
+            addToast(
+                isTr
+                    ? `"${formData.name_tr}" başarıyla ${initialData ? 'güncellendi' : 'eklendi'}!`
+                    : `"${formData.name_tr}" ${initialData ? 'updated' : 'added'} successfully!`,
+                'success',
+                { title: isTr ? 'Başarılı' : 'Success' }
+            )
 
             router.push(`/${locale}/admin/products`)
             router.refresh()
-        } catch (error) {
+        } catch (error: any) {
             console.error('Save error:', error)
-            alert('Ürün kaydedilemedi')
+
+            // Show detailed error toast
+            addToast(
+                error.message || (isTr ? 'Ürün kaydedilemedi' : 'Failed to save product'),
+                'error',
+                { title: isTr ? 'Hata' : 'Error', duration: 7000 }
+            )
         } finally {
             setIsLoading(false)
         }

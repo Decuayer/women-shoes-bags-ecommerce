@@ -28,8 +28,9 @@ if (!globalForPrisma.pool) {
       connectionString,
       ssl: { rejectUnauthorized: false }, // Supabase requires this
       max: 1, // Limit connections in serverless environment
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 60000, // 60 seconds before closing idle connections
+      connectionTimeoutMillis: 30000, // 30 seconds to establish connection
+      statement_timeout: 30000, // 30 seconds for query execution
     })
 
     // Test connection

@@ -4,7 +4,11 @@ import { Inter } from 'next/font/google'
 import { CartProvider } from '@/components/cart/CartContext'
 import { AuthProvider } from '@/context/AuthContext'
 import { ToastProvider } from '@/context/ToastContext'
+import { LoadingProvider } from '@/context/LoadingContext'
 import ToastContainer from '@/components/ui/ToastContainer'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import LoadingProgressBar from '@/components/ui/LoadingProgressBar'
+import NavigationHandler from '@/components/layout/NavigationHandler'
 import '../globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -30,10 +34,15 @@ export default async function RootLayout({
                 <NextIntlClientProvider locale={locale} messages={messages}>
                     <AuthProvider>
                         <ToastProvider>
-                            <CartProvider>
-                                {children}
-                            </CartProvider>
-                            <ToastContainer />
+                            <LoadingProvider>
+                                <CartProvider>
+                                    <NavigationHandler />
+                                    <LoadingProgressBar />
+                                    {children}
+                                </CartProvider>
+                                <ToastContainer />
+                                <LoadingSpinner />
+                            </LoadingProvider>
                         </ToastProvider>
                     </AuthProvider>
                 </NextIntlClientProvider>

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import OrderStatusBadge from '@/components/admin/OrderStatusBadge'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useToast } from '@/context/ToastContext'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 interface OrderDetailClientProps {
     order: any
@@ -14,8 +16,11 @@ interface OrderDetailClientProps {
 export default function OrderDetailClient({ order, locale }: OrderDetailClientProps) {
     const router = useRouter()
     const isTr = locale === 'tr'
+    const { addToast } = useToast()
     const [status, setStatus] = useState(order.status)
     const [isLoading, setIsLoading] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [deleteLoading, setDeleteLoading] = useState(false)
 
     const handleUpdateStatus = async () => {
         setIsLoading(true)
@@ -28,13 +33,47 @@ export default function OrderDetailClient({ order, locale }: OrderDetailClientPr
 
             if (!res.ok) throw new Error('Failed to update status')
 
+            addToast(
+                isTr ? 'Sipariş durumu güncellendi' : 'Order status updated',
+                'success',
+                { title: isTr ? 'Başarılı' : 'Success' }
+            )
             router.refresh()
-            alert(isTr ? 'Sipariş durumu güncellendi' : 'Order status updated')
         } catch (error) {
             console.error('Update error:', error)
-            alert(isTr ? 'Güncelleme hatası' : 'Update failed')
+            addToast(
+                isTr ? 'Güncelleme hatası' : 'Update failed',
+                'error',
+                { title: isTr ? 'Hata' : 'Error' }
+            )
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        setDeleteLoading(true)
+        try {
+            const res = await fetch(`/api/admin/orders/${order.id}`, { method: 'DELETE' })
+            if (!res.ok) throw new Error('Failed to delete')
+
+            addToast(
+                isTr ? `Sipariş #${order.orderNumber} silindi` : `Order #${order.orderNumber} deleted`,
+                'success',
+                { title: isTr ? 'Başarılı' : 'Success' }
+            )
+            setDeleteDialogOpen(false)
+            router.push(`/${locale}/admin/orders`)
+            router.refresh()
+        } catch (e) {
+            console.error(e)
+            addToast(
+                isTr ? 'Silme başarısız' : 'Delete failed',
+                'error',
+                { title: isTr ? 'Hata' : 'Error' }
+            )
+        } finally {
+            setDeleteLoading(false)
         }
     }
 
@@ -67,19 +106,7 @@ export default function OrderDetailClient({ order, locale }: OrderDetailClientPr
                     </div>
                 </div>
                 <button
-                    onClick={async () => {
-                        if (!confirm(isTr ? 'Bu siparişi silmek istediğinize emin misiniz?' : 'Are you sure you want to delete this order?')) return
-
-                        try {
-                            const res = await fetch(`/api/admin/orders/${order.id}`, { method: 'DELETE' })
-                            if (!res.ok) throw new Error('Failed to delete')
-                            router.push(`/${locale}/admin/orders`)
-                            router.refresh()
-                        } catch (e) {
-                            console.error(e)
-                            alert(isTr ? 'Silme başarısız' : 'Delete failed')
-                        }
-                    }}
+                    onClick={() => setDeleteDialogOpen(true)}
                     className="btn btn-outline border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
                 >
                     {isTr ? 'Siparişi Sil' : 'Delete Order'}
@@ -189,6 +216,23 @@ export default function OrderDetailClient({ order, locale }: OrderDetailClientPr
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteDialogOpen}
+                onClose={() => !deleteLoading && setDeleteDialogOpen(false)}
+                onConfirm={handleDelete}
+                title={isTr ? 'Siparişi Sil' : 'Delete Order'}
+                message={
+                    isTr
+                        ? `#${order.orderNumber} numaralı siparişi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm sipariş verileri silinecektir.`
+                        : `Are you sure you want to delete order #${order.orderNumber}? This action cannot be undone and all order data will be deleted.`
+                }
+                confirmText={isTr ? 'Sil' : 'Delete'}
+                cancelText={isTr ? 'İptal' : 'Cancel'}
+                variant="danger"
+                loading={deleteLoading}
+            />
         </div >
     )
 }

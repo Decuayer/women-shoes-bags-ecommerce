@@ -1,9 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import DataTable from '@/components/admin/DataTable'
 import { Plus } from 'lucide-react'
-import Link from 'next/link'
+import LoadingLink from '@/components/ui/LoadingLink'
+import { useLoading } from '@/context/LoadingContext'
+import { useToast } from '@/context/ToastContext'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 interface ProductListClientProps {
     data: any[]
@@ -16,6 +20,11 @@ export default function ProductListClient({ data, totalPages, currentPage, local
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
+    const { showLoading, hideLoading } = useLoading()
+    const { addToast } = useToast()
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [deleteLoading, setDeleteLoading] = useState(false)
+    const [productToDelete, setProductToDelete] = useState<any>(null)
 
     const handleSearch = (query: string) => {
         const params = new URLSearchParams(searchParams)
@@ -35,21 +44,49 @@ export default function ProductListClient({ data, totalPages, currentPage, local
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Bu ürünü silmek istediğinizden emin misiniz?')) return
+        const product = data.find(p => p.id === id)
+        setProductToDelete(product)
+        setDeleteDialogOpen(true)
+    }
+
+    const confirmDelete = async () => {
+        if (!productToDelete) return
+
+        setDeleteLoading(true)
 
         try {
-            const res = await fetch(`/api/admin/products/${id}`, {
+            const res = await fetch(`/api/admin/products/${productToDelete.id}`, {
                 method: 'DELETE'
             })
 
+            const resData = await res.json()
+
             if (res.ok) {
+                addToast(
+                    locale === 'tr'
+                        ? `"${productToDelete.name}" başarıyla silindi!`
+                        : `"${productToDelete.name}" deleted successfully!`,
+                    'success',
+                    { title: locale === 'tr' ? 'Başarılı' : 'Success' }
+                )
+                setDeleteDialogOpen(false)
                 router.refresh()
             } else {
-                alert('Ürün silinemedi')
+                addToast(
+                    resData.message || (locale === 'tr' ? 'Ürün silinemedi' : 'Failed to delete product'),
+                    'error',
+                    { title: locale === 'tr' ? 'Hata' : 'Error', duration: 7000 }
+                )
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Delete error:', error)
-            alert('Bir hata oluştu')
+            addToast(
+                locale === 'tr' ? 'Bir hata oluştu' : 'An error occurred',
+                'error',
+                { title: locale === 'tr' ? 'Hata' : 'Error' }
+            )
+        } finally {
+            setDeleteLoading(false)
         }
     }
 
@@ -97,9 +134,9 @@ export default function ProductListClient({ data, totalPages, currentPage, local
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">{locale === 'tr' ? 'Ürünler' : 'Products'}</h1>
-                <Link href={`/${locale}/admin/products/new`} className="btn btn-primary flex items-center gap-2">
+                <LoadingLink href={`/${locale}/admin/products/new`} className="btn btn-primary flex items-center gap-2">
                     <Plus size={20} /> {locale === 'tr' ? 'Ürün Ekle' : 'Add Product'}
-                </Link>
+                </LoadingLink>
             </div>
 
             <DataTable
@@ -114,6 +151,25 @@ export default function ProductListClient({ data, totalPages, currentPage, local
                     totalPages,
                     onPageChange: handlePageChange
                 }}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteDialogOpen}
+                onClose={() => !deleteLoading && setDeleteDialogOpen(false)}
+                onConfirm={confirmDelete}
+                title={locale === 'tr' ? 'Ürünü Sil' : 'Delete Product'}
+                message={
+                    productToDelete
+                        ? (locale === 'tr'
+                            ? `"${productToDelete.name}" ürününü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`
+                            : `Are you sure you want to delete "${productToDelete.name}"? This action cannot be undone.`)
+                        : ''
+                }
+                confirmText={locale === 'tr' ? 'Sil' : 'Delete'}
+                cancelText={locale === 'tr' ? 'İptal' : 'Cancel'}
+                variant="danger"
+                loading={deleteLoading}
             />
         </div>
     )

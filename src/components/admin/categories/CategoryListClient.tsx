@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import DataTable from '@/components/admin/DataTable'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
+import { useToast } from '@/context/ToastContext'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 interface CategoryListClientProps {
     data: any[]
@@ -13,24 +16,55 @@ interface CategoryListClientProps {
 export default function CategoryListClient({ data, locale }: CategoryListClientProps) {
     const router = useRouter()
     const isTr = locale === 'tr'
+    const { addToast } = useToast()
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [deleteLoading, setDeleteLoading] = useState(false)
+    const [categoryToDelete, setCategoryToDelete] = useState<any>(null)
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this category?')) return
+        const category = data.find(c => c.id === id)
+        setCategoryToDelete(category)
+        setDeleteDialogOpen(true)
+    }
+
+    const confirmDelete = async () => {
+        if (!categoryToDelete) return
+
+        setDeleteLoading(true)
 
         try {
-            const res = await fetch(`/api/admin/categories/${id}`, {
+            const res = await fetch(`/api/admin/categories/${categoryToDelete.id}`, {
                 method: 'DELETE'
             })
 
+            const resData = await res.json()
+
             if (res.ok) {
+                addToast(
+                    isTr
+                        ? `"${categoryToDelete.name_tr}" kategorisi başarıyla silindi!`
+                        : `Category "${categoryToDelete.name_tr}" deleted successfully!`,
+                    'success',
+                    { title: isTr ? 'Başarılı' : 'Success' }
+                )
+                setDeleteDialogOpen(false)
                 router.refresh()
             } else {
-                const json = await res.json()
-                alert(json.error || 'Failed to delete category')
+                addToast(
+                    resData.error || resData.message || (isTr ? 'Kategori silinemedi' : 'Failed to delete category'),
+                    'error',
+                    { title: isTr ? 'Hata' : 'Error', duration: 7000 }
+                )
             }
         } catch (error) {
             console.error('Delete error:', error)
-            alert('An error occurred')
+            addToast(
+                isTr ? 'Bir hata oluştu' : 'An error occurred',
+                'error',
+                { title: isTr ? 'Hata' : 'Error' }
+            )
+        } finally {
+            setDeleteLoading(false)
         }
     }
 
@@ -61,6 +95,25 @@ export default function CategoryListClient({ data, locale }: CategoryListClientP
                 keyField="id"
                 onDelete={handleDelete}
                 editUrl={(row) => `/${locale}/admin/categories/${row.id}`}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteDialogOpen}
+                onClose={() => !deleteLoading && setDeleteDialogOpen(false)}
+                onConfirm={confirmDelete}
+                title={isTr ? 'Kategoriyi Sil' : 'Delete Category'}
+                message={
+                    categoryToDelete
+                        ? (isTr
+                            ? `"${categoryToDelete.name_tr}" kategorisini silmek istediğinizden emin misiniz?${categoryToDelete._count?.products > 0 ? ` Bu kategoriye ait ${categoryToDelete._count.products} ürün var.` : ''}`
+                            : `Are you sure you want to delete "${categoryToDelete.name_tr}"?${categoryToDelete._count?.products > 0 ? ` This category has ${categoryToDelete._count.products} products.` : ''}`)
+                        : ''
+                }
+                confirmText={isTr ? 'Sil' : 'Delete'}
+                cancelText={isTr ? 'İptal' : 'Cancel'}
+                variant={categoryToDelete?._count?.products > 0 ? 'warning' : 'danger'}
+                loading={deleteLoading}
             />
         </div>
     )

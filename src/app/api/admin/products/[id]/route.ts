@@ -119,14 +119,49 @@ export async function PUT(
             }
 
             return updatedProduct
+        }, {
+            timeout: 15000 // 15 seconds for complex updates with images and variants
         })
 
         return NextResponse.json(product)
 
     } catch (error) {
         console.error('Update product error:', error)
+
+        // Provide detailed error messages
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2028') {
+                return NextResponse.json(
+                    {
+                        error: 'Transaction timeout',
+                        message: 'İşlem çok uzun sürdü. Lütfen daha az varyant veya resim ile tekrar deneyin.'
+                    },
+                    { status: 500 }
+                )
+            } else if (error.code === 'P2025') {
+                return NextResponse.json(
+                    {
+                        error: 'Product not found',
+                        message: 'Güncellenmek istenen ürün bulunamadı.'
+                    },
+                    { status: 404 }
+                )
+            } else if (error.code === 'P2003') {
+                return NextResponse.json(
+                    {
+                        error: 'Invalid reference',
+                        message: 'Geçersiz kategori veya referans.'
+                    },
+                    { status: 400 }
+                )
+            }
+        }
+
         return NextResponse.json(
-            { error: 'Failed to update product' },
+            {
+                error: 'Failed to update product',
+                message: 'Ürün güncellenirken bir hata oluştu. Lütfen tekrar deneyin.'
+            },
             { status: 500 }
         )
     }
@@ -178,8 +213,33 @@ export async function DELETE(
         return NextResponse.json({ success: true })
     } catch (error) {
         console.error('Delete product error:', error)
+
+        // Provide detailed error messages
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2025') {
+                return NextResponse.json(
+                    {
+                        error: 'Product not found',
+                        message: 'Silinmek istenen ürün bulunamadı.'
+                    },
+                    { status: 404 }
+                )
+            } else if (error.code === 'P2003' || error.code === 'P2014') {
+                return NextResponse.json(
+                    {
+                        error: 'Constraint violation',
+                        message: 'Ürün silinemedi. Bu ürüne ait aktif siparişler var.'
+                    },
+                    { status: 400 }
+                )
+            }
+        }
+
         return NextResponse.json(
-            { error: 'Failed to delete product' },
+            {
+                error: 'Failed to delete product',
+                message: 'Ürün silinirken bir hata oluştu. Lütfen tekrar deneyin.'
+            },
             { status: 500 }
         )
     }

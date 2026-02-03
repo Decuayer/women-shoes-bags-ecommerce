@@ -76,87 +76,119 @@ async function getProducts(locale: string, filters: {
         orderBy = { price: 'desc' }
     }
 
-    const [products, total] = await Promise.all([
-        prisma.product.findMany({
-            where,
-            include: {
-                category: true,
-                images: {
-                    orderBy: { displayOrder: 'asc' },
-                    take: 1,
+    try {
+        const [products, total] = await Promise.all([
+            prisma.product.findMany({
+                where,
+                include: {
+                    category: true,
+                    images: {
+                        orderBy: { displayOrder: 'asc' },
+                        take: 1,
+                    },
                 },
-            },
-            orderBy,
-            skip,
-            take: limit,
-        }),
-        prisma.product.count({ where }),
-    ])
+                orderBy,
+                skip,
+                take: limit,
+            }),
+            prisma.product.count({ where }),
+        ])
 
-    return {
-        products: products.map((product) => ({
-            id: product.id,
-            slug: product.slug,
-            name: locale === 'tr' ? product.name_tr : product.name_en,
-            price: Number(product.price),
-            compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
-            category: {
-                name: locale === 'tr' ? product.category.name_tr : product.category.name_en,
-                slug: product.category.slug,
-            },
-            images: product.images.map((img) => ({
-                url: img.url,
-                alt: locale === 'tr' ? (img.alt_tr || product.name_tr) : (img.alt_en || product.name_en),
+        return {
+            products: products.map((product) => ({
+                id: product.id,
+                slug: product.slug,
+                name: locale === 'tr' ? product.name_tr : product.name_en,
+                price: Number(product.price),
+                compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+                category: {
+                    name: locale === 'tr' ? product.category.name_tr : product.category.name_en,
+                    slug: product.category.slug,
+                },
+                images: product.images.map((img) => ({
+                    url: img.url,
+                    alt: locale === 'tr' ? (img.alt_tr || product.name_tr) : (img.alt_en || product.name_en),
+                })),
+                rating: 4.5, // Placeholder
             })),
-            rating: 4.5, // Placeholder
-        })),
-        total,
-        page,
-        totalPages: Math.ceil(total / limit),
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+        }
+    } catch (error) {
+        console.error('❌ Database query failed in getProducts:', error)
+
+        // Check if it's a timeout error
+        const isTimeout = error instanceof Error && (
+            error.message.includes('timeout') ||
+            error.message.includes('exceeded')
+        )
+
+        if (isTimeout) {
+            console.error('🕒 Database connection timeout - check your database connection and network')
+        }
+
+        // Return empty results instead of crashing the page
+        return {
+            products: [],
+            total: 0,
+            page,
+            totalPages: 0,
+        }
     }
 }
 
 async function getCategories(locale: string) {
-    const categories = await prisma.category.findMany({
-        where: { isActive: true },
-        orderBy: { displayOrder: 'asc' },
-    })
+    try {
+        const categories = await prisma.category.findMany({
+            where: { isActive: true },
+            orderBy: { displayOrder: 'asc' },
+        })
 
-    return categories.map((cat) => ({
-        id: cat.id,
-        slug: cat.slug,
-        name: locale === 'tr' ? cat.name_tr : cat.name_en,
-    }))
+        return categories.map((cat) => ({
+            id: cat.id,
+            slug: cat.slug,
+            name: locale === 'tr' ? cat.name_tr : cat.name_en,
+        }))
+    } catch (error) {
+        console.error('❌ Failed to fetch categories:', error)
+        return []
+    }
 }
 
 async function getFilterOptions() {
-    // Get unique colors and sizes from variants
-    const variants = await prisma.productVariant.findMany({
-        where: { stock: { gt: 0 } },
-        select: {
-            color_tr: true,
-            color_en: true,
-            size: true,
-        },
-        distinct: ['color_tr', 'size'],
-    })
+    try {
+        // Get unique colors and sizes from variants
+        const variants = await prisma.productVariant.findMany({
+            where: { stock: { gt: 0 } },
+            select: {
+                color_tr: true,
+                color_en: true,
+                size: true,
+            },
+            distinct: ['color_tr', 'size'],
+        })
 
-    const colorsSet = new Set<string>()
-    const sizesSet = new Set<string>()
+        const colorsSet = new Set<string>()
+        const sizesSet = new Set<string>()
 
-    variants.forEach((v) => {
-        if (v.color_tr) colorsSet.add(v.color_tr)
-        if (v.size) sizesSet.add(v.size)
-    })
+        variants.forEach((v) => {
+            if (v.color_tr) colorsSet.add(v.color_tr)
+            if (v.size) sizesSet.add(v.size)
+        })
 
-    return {
-        colors: Array.from(colorsSet),
-        sizes: Array.from(sizesSet).sort((a, b) => {
-            const numA = parseInt(a)
-            const numB = parseInt(b)
-            if (!isNaN(numA) && !isNaN(numB)) return numA - numB
-            return a.localeCompare(b)
-        }),
+        return {
+            colors: Array.from(colorsSet),
+            sizes: Array.from(sizesSet).sort((a, b) => {
+                const numA = parseInt(a)
+                const numB = parseInt(b)
+                if (!isNaN(numA) && !isNaN(numB)) return numA - numB
+                return a.localeCompare(b)
+            }),
+        }
+    } catch (error) {
+        console.error('❌ Failed to fetch filter options:', error)
+        return { colors: [], sizes: [] }
     }
 }
 
