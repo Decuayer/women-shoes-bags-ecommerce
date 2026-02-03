@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // @ts-expect-error: outputFileTracingIncludes is valid but missing in some type definitions
+    outputFileTracingIncludes: {
+      '/api/**/*': ['./node_modules/iyzipay/lib/resources/**/*'],
+    },
   },
 }
 
