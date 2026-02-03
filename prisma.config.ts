@@ -10,6 +10,9 @@ export default defineConfig({
     seed: "npx dotenv -e .env -- tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DIRECT_URL"],
+    url: process.env["DATABASE_URL"],
+    // Provide the direct URL for migrations
+    // @ts-expect-error directUrl is supported but not yet typed in defineConfig
+    directUrl: process.env["DIRECT_URL"],
   },
 });
