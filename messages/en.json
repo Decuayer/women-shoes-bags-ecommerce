@@ -8,11 +8,9 @@
         "logout": "Logout",
         "home": "Home",
         "products": "Products",
-        "shoes": "Shoes",
-        "bags": "Bags",
-        "categories": "Categories",
         "about": "About",
         "contact": "Contact",
+        "categories": "Categories",
         "language": "Language"
     },
     "product": {

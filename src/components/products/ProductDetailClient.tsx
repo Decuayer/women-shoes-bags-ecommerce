@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { ShoppingBag, Heart, Share2, Minus, Plus, Check, Truck, RefreshCw, Shield } from 'lucide-react'
+import { ShoppingBag, Heart, Share2, Minus, Plus } from 'lucide-react'
 import ProductGallery from './ProductGallery'
 import VariantSelector from './VariantSelector'
 import WishlistButton from './WishlistButton'
 import { useCart } from '@/components/cart/CartContext'
+import { iconMap } from '@/components/admin/settings/IconPicker'
 
 interface Variant {
     id: string
@@ -14,6 +15,14 @@ interface Variant {
     colorHex: string | null
     stock: number
     sku: string
+}
+
+interface Feature {
+    icon: string
+    title_tr: string
+    title_en: string
+    desc_tr: string
+    desc_en: string
 }
 
 interface ProductDetailClientProps {
@@ -39,14 +48,14 @@ interface ProductDetailClientProps {
     }
     locale: string
     initialIsWishlisted?: boolean
+    features: Feature[]
 }
 
-export default function ProductDetailClient({ product, locale, initialIsWishlisted = false }: ProductDetailClientProps) {
+export default function ProductDetailClient({ product, locale, initialIsWishlisted = false, features }: ProductDetailClientProps) {
     const isTr = locale === 'tr'
     const { addItem } = useCart()
     const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
     const [quantity, setQuantity] = useState(1)
-    const [isWishlisted, setIsWishlisted] = useState(false)
     const [isAdded, setIsAdded] = useState(false)
 
     const discount = product.compareAtPrice
@@ -75,24 +84,6 @@ export default function ProductDetailClient({ product, locale, initialIsWishlist
         setIsAdded(true)
         setTimeout(() => setIsAdded(false), 2000)
     }
-
-    const features = [
-        {
-            icon: Truck,
-            title: isTr ? 'Ücretsiz Kargo' : 'Free Shipping',
-            desc: isTr ? '1500 TL üzeri siparişlerde' : 'On orders over 1500 TL'
-        },
-        {
-            icon: RefreshCw,
-            title: isTr ? '14 Gün İade' : '14-Day Returns',
-            desc: isTr ? 'Kolay iade hakkı' : 'Easy return policy'
-        },
-        {
-            icon: Shield,
-            title: isTr ? 'Güvenli Ödeme' : 'Secure Payment',
-            desc: isTr ? 'SSL korumalı' : 'SSL protected'
-        }
-    ]
 
     return (
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -187,15 +178,20 @@ export default function ProductDetailClient({ product, locale, initialIsWishlist
                 </div>
 
                 {/* Features */}
-                <div className="grid grid-cols-3 gap-4 py-6 border-t border-border">
-                    {features.map((feature, index) => (
-                        <div key={index} className="text-center">
-                            <feature.icon size={24} className="mx-auto text-secondary mb-2" />
-                            <p className="text-sm font-medium">{feature.title}</p>
-                            <p className="text-xs text-text-dark">{feature.desc}</p>
-                        </div>
-                    ))}
-                </div>
+                {features && features.length > 0 && (
+                    <div className="grid grid-cols-3 gap-4 py-6 border-t border-border">
+                        {features.slice(0, 3).map((feature, index) => {
+                            const Icon = iconMap[feature.icon] || iconMap['Truck']
+                            return (
+                                <div key={index} className="text-center">
+                                    <Icon size={24} className="mx-auto text-secondary mb-2" />
+                                    <p className="text-sm font-medium">{isTr ? feature.title_tr : feature.title_en}</p>
+                                    <p className="text-xs text-text-dark">{isTr ? feature.desc_tr : feature.desc_en}</p>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
 
                 {/* Description */}
                 <div>

@@ -8,11 +8,9 @@
         "logout": "Çıkış Yap",
         "home": "Anasayfa",
         "products": "Ürünler",
-        "shoes": "Ayakkabılar",
-        "bags": "Çantalar",
-        "categories": "Kategoriler",
         "about": "Hakkımızda",
         "contact": "İletişim",
+        "categories": "Kategoriler",
         "language": "Dil"
     },
     "product": {

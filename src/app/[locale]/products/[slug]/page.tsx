@@ -119,7 +119,7 @@ async function checkIsWishlisted(productId: string) {
     }
 }
 
-import { getGeneralSettings, getAnnouncementSettings } from '@/lib/settings'
+import { getGeneralSettings, getAnnouncementSettings, getFeatureHighlights } from '@/lib/settings'
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
     const { locale, slug } = await params
@@ -128,6 +128,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     const product = await getProduct(slug, locale)
     const general = await getGeneralSettings()
     const announcement = await getAnnouncementSettings()
+    const features = await getFeatureHighlights()
 
     if (!product) {
         notFound()
@@ -191,6 +192,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                             product={product}
                             locale={locale}
                             initialIsWishlisted={isWishlisted}
+                            features={features}
                         />
 
                         {/* Related Products */}

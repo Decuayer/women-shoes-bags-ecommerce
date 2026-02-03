@@ -6,9 +6,11 @@ import { useState } from 'react'
 interface ImageUploaderProps {
     images: { file?: File; url: string }[]
     onChange: (images: { file?: File; url: string }[]) => void
+    maxFiles?: number
+    aspectRatio?: string
 }
 
-export default function ImageUploader({ images, onChange }: ImageUploaderProps) {
+export default function ImageUploader({ images, onChange, maxFiles, aspectRatio = 'aspect-square' }: ImageUploaderProps) {
     const [isDragging, setIsDragging] = useState(false)
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,7 +19,13 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                 file,
                 url: URL.createObjectURL(file)
             }))
-            onChange([...images, ...newfiles])
+
+            // If maxFiles is 1, replace existing
+            if (maxFiles === 1) {
+                onChange(newfiles)
+            } else {
+                onChange([...images, ...newfiles])
+            }
         }
     }
 
@@ -27,11 +35,13 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
         onChange(newImages)
     }
 
+    const showUploadButton = !maxFiles || images.length < maxFiles
+
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className={`grid gap-4 ${maxFiles === 1 ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4'}`}>
                 {images.map((img, index) => (
-                    <div key={index} className="relative aspect-square bg-surface-light rounded-lg overflow-hidden group border border-border">
+                    <div key={index} className={`relative ${aspectRatio} bg-surface-light rounded-lg overflow-hidden group border border-border`}>
                         <img src={img.url} alt="Product" className="w-full h-full object-cover" />
                         <button
                             type="button"
@@ -43,33 +53,40 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                     </div>
                 ))}
 
-                <label
-                    className={`aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                        }`}
-                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-                    onDragLeave={() => setIsDragging(false)}
-                    onDrop={(e) => {
-                        e.preventDefault()
-                        setIsDragging(false)
-                        if (e.dataTransfer.files) {
-                            const newfiles = Array.from(e.dataTransfer.files).map(file => ({
-                                file,
-                                url: URL.createObjectURL(file)
-                            }))
-                            onChange([...images, ...newfiles])
-                        }
-                    }}
-                >
-                    <Upload className="text-text-muted mb-2" />
-                    <span className="text-sm text-text-muted">Görsel Yükle</span>
-                    <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange}
-                    />
-                </label>
+                {showUploadButton && (
+                    <label
+                        className={`${aspectRatio} border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                            }`}
+                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                            e.preventDefault()
+                            setIsDragging(false)
+                            if (e.dataTransfer.files) {
+                                const newfiles = Array.from(e.dataTransfer.files).map(file => ({
+                                    file,
+                                    url: URL.createObjectURL(file)
+                                }))
+
+                                if (maxFiles === 1) {
+                                    onChange(newfiles)
+                                } else {
+                                    onChange([...images, ...newfiles])
+                                }
+                            }
+                        }}
+                    >
+                        <Upload className="text-text-muted mb-2" />
+                        <span className="text-sm text-text-muted">Görsel Yükle</span>
+                        <input
+                            type="file"
+                            multiple={maxFiles !== 1}
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleFileChange}
+                        />
+                    </label>
+                )}
             </div>
         </div>
     )

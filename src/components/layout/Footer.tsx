@@ -11,7 +11,8 @@ import {
     Shield,
     RefreshCw
 } from 'lucide-react'
-import { getGeneralSettings } from '@/lib/settings'
+import { getGeneralSettings, getContactSettings, getSocialMediaSettings, getFeatureHighlights } from '@/lib/settings'
+import * as LucideIcons from 'lucide-react'
 
 interface FooterProps {
     locale: string
@@ -20,6 +21,9 @@ interface FooterProps {
 export default async function Footer({ locale }: FooterProps) {
     const isTr = locale === 'tr'
     const settings = await getGeneralSettings()
+    const contactSettings = await getContactSettings()
+    const socialMediaSettings = await getSocialMediaSettings()
+    const featureHighlights = await getFeatureHighlights()
 
     const footerLinks = {
         shop: {
@@ -37,7 +41,7 @@ export default async function Footer({ locale }: FooterProps) {
                 { href: `/${locale}/contact`, label: isTr ? 'İletişim' : 'Contact Us' },
                 { href: `/${locale}/faq`, label: isTr ? 'S.S.S.' : 'FAQ' },
                 { href: `/${locale}/shipping`, label: isTr ? 'Kargo Bilgileri' : 'Shipping Info' },
-                { href: `/${locale}/returns`, label: isTr ? 'İade & Değişim' : 'Returns & Exchanges' },
+                { href: `/${locale}/exchange`, label: isTr ? 'Değişim' : 'Exchange' },
             ]
         },
         company: {
@@ -50,28 +54,15 @@ export default async function Footer({ locale }: FooterProps) {
         }
     }
 
-    const features = [
-        {
-            icon: Truck,
-            title: isTr ? 'Ücretsiz Kargo' : 'Free Shipping',
-            desc: isTr ? '1500 TL üzeri siparişlerde' : 'On orders over 1500 TL'
-        },
-        {
-            icon: RefreshCw,
-            title: isTr ? 'Kolay İade' : 'Easy Returns',
-            desc: isTr ? '14 gün içinde ücretsiz' : 'Free within 14 days'
-        },
-        {
-            icon: Shield,
-            title: isTr ? 'Güvenli Ödeme' : 'Secure Payment',
-            desc: isTr ? '256-bit SSL şifreleme' : '256-bit SSL encryption'
-        },
-        {
-            icon: CreditCard,
-            title: isTr ? 'Taksit İmkanı' : 'Installment',
-            desc: isTr ? '12 aya varan taksit' : 'Up to 12 installments'
+    // Map features with dynamic icons
+    const features = featureHighlights.map(feature => {
+        const IconComponent = (LucideIcons as any)[feature.icon] || Truck
+        return {
+            icon: IconComponent,
+            title: isTr ? feature.title_tr : feature.title_en,
+            desc: isTr ? feature.desc_tr : feature.desc_en
         }
-    ]
+    })
 
     return (
         <footer className="bg-surface border-t border-border">
@@ -114,31 +105,46 @@ export default async function Footer({ locale }: FooterProps) {
 
                         {/* Contact Info */}
                         <div className="space-y-2 text-sm text-text-muted">
-                            <a href="tel:+902121234567" className="flex items-center gap-2 hover:text-secondary">
+                            <a href={`tel:${contactSettings.phone.replace(/\s/g, '')}`} className="flex items-center gap-2 hover:text-secondary">
                                 <Phone size={16} />
-                                +90 212 123 45 67
+                                {contactSettings.phone}
                             </a>
-                            <a href={`mailto:${settings.contactEmail}`} className="flex items-center gap-2 hover:text-secondary">
+                            <a href={`mailto:${contactSettings.email}`} className="flex items-center gap-2 hover:text-secondary">
                                 <Mail size={16} />
-                                {settings.contactEmail}
+                                {contactSettings.email}
                             </a>
                             <p className="flex items-center gap-2">
                                 <MapPin size={16} />
-                                İstanbul, Türkiye
+                                {contactSettings.location}
                             </p>
                         </div>
 
                         {/* Social Links */}
                         <div className="flex gap-3 mt-6">
-                            {[Facebook, Instagram, Twitter].map((Icon, index) => (
-                                <a
-                                    key={index}
-                                    href="#"
-                                    className="w-10 h-10 rounded-full bg-surface-light flex items-center justify-center text-text-muted hover:bg-secondary hover:text-primary transition-colors"
-                                >
-                                    <Icon size={18} />
-                                </a>
-                            ))}
+                            <a
+                                href={socialMediaSettings.facebook}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-10 h-10 rounded-full bg-surface-light flex items-center justify-center text-text-muted hover:bg-secondary hover:text-primary transition-colors"
+                            >
+                                <Facebook size={18} />
+                            </a>
+                            <a
+                                href={socialMediaSettings.instagram}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-10 h-10 rounded-full bg-surface-light flex items-center justify-center text-text-muted hover:bg-secondary hover:text-primary transition-colors"
+                            >
+                                <Instagram size={18} />
+                            </a>
+                            <a
+                                href={socialMediaSettings.twitter}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-10 h-10 rounded-full bg-surface-light flex items-center justify-center text-text-muted hover:bg-secondary hover:text-primary transition-colors"
+                            >
+                                <Twitter size={18} />
+                            </a>
                         </div>
                     </div>
 

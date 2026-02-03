@@ -39,7 +39,7 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
     return (
         <div className="space-y-4">
             {/* Main Image */}
-            <div className="relative aspect-[3/4] bg-surface rounded-2xl overflow-hidden group">
+            <div className="relative aspect-[3/4] bg-surface rounded-2xl overflow-hidden group max-w-md mx-auto md:max-w-none">
                 <img
                     src={currentImage.url}
                     alt={currentImage.alt}
@@ -87,12 +87,12 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
 
             {/* Thumbnails */}
             {images.length > 1 && (
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="flex gap-3 overflow-x-auto pb-2 max-w-[calc(100vw-2rem)] md:max-w-none mx-auto no-scrollbar scroll-smooth snap-x">
                     {images.map((image, index) => (
                         <button
                             key={image.id}
                             onClick={() => setCurrentIndex(index)}
-                            className={`shrink-0 w-20 h-24 rounded-lg overflow-hidden border-2 transition-colors ${index === currentIndex ? 'border-secondary' : 'border-transparent hover:border-border'
+                            className={`shrink-0 w-20 h-24 rounded-lg overflow-hidden border-2 transition-colors snap-start ${index === currentIndex ? 'border-secondary' : 'border-transparent hover:border-border'
                                 }`}
                         >
                             <img

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Filter, X, ChevronDown, SlidersHorizontal } from 'lucide-react'
 
@@ -31,6 +31,41 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
     const currentMinPrice = searchParams.get('minPrice') || ''
     const currentMaxPrice = searchParams.get('maxPrice') || ''
 
+    // Local state for price inputs with debouncing
+    const [minPrice, setMinPrice] = useState(currentMinPrice)
+    const [maxPrice, setMaxPrice] = useState(currentMaxPrice)
+    const isMounted = useRef(false)
+
+    // Sync local state with URL params when they change
+    useEffect(() => {
+        setMinPrice(currentMinPrice)
+    }, [currentMinPrice])
+
+    useEffect(() => {
+        setMaxPrice(currentMaxPrice)
+    }, [currentMaxPrice])
+
+    // Debounce price filter updates (500ms delay)
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true
+            return
+        }
+        const timer = setTimeout(() => {
+            updateFilter('minPrice', minPrice)
+        }, 500)
+        return () => clearTimeout(timer)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [minPrice])
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            updateFilter('maxPrice', maxPrice)
+        }, 500)
+        return () => clearTimeout(timer)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [maxPrice])
+
     const updateFilter = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString())
         if (value) {
@@ -39,11 +74,11 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
             params.delete(key)
         }
         params.delete('page') // Reset to page 1 when filtering
-        router.push(`${pathname}?${params.toString()}`)
+        router.push(`${pathname}?${params.toString()}`, { scroll: false })
     }
 
     const clearAllFilters = () => {
-        router.push(pathname)
+        router.push(pathname, { scroll: false })
     }
 
     const hasFilters = currentCategory || currentColor || currentSize || currentMinPrice || currentMaxPrice
@@ -86,8 +121,8 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
                             key={color}
                             onClick={() => updateFilter('color', currentColor === color ? '' : color)}
                             className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${currentColor === color
-                                    ? 'border-secondary bg-secondary text-primary'
-                                    : 'border-border text-text-muted hover:border-secondary'
+                                ? 'border-secondary bg-secondary text-primary'
+                                : 'border-border text-text-muted hover:border-secondary'
                                 }`}
                         >
                             {color}
@@ -104,9 +139,9 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
                         <button
                             key={size}
                             onClick={() => updateFilter('size', currentSize === size ? '' : size)}
-                            className={`w-12 h-10 rounded-lg text-sm border transition-colors ${currentSize === size
-                                    ? 'border-secondary bg-secondary text-primary'
-                                    : 'border-border text-text-muted hover:border-secondary'
+                            className={`min-w-[48px] px-3 h-10 rounded-lg text-sm border transition-colors whitespace-nowrap ${currentSize === size
+                                ? 'border-secondary bg-secondary text-primary'
+                                : 'border-border text-text-muted hover:border-secondary'
                                 }`}
                         >
                             {size}
@@ -122,15 +157,15 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
                     <input
                         type="number"
                         placeholder={isTr ? 'Min' : 'Min'}
-                        value={currentMinPrice}
-                        onChange={(e) => updateFilter('minPrice', e.target.value)}
+                        value={minPrice}
+                        onChange={(e) => setMinPrice(e.target.value)}
                         className="input w-1/2 text-sm"
                     />
                     <input
                         type="number"
                         placeholder={isTr ? 'Max' : 'Max'}
-                        value={currentMaxPrice}
-                        onChange={(e) => updateFilter('maxPrice', e.target.value)}
+                        value={maxPrice}
+                        onChange={(e) => setMaxPrice(e.target.value)}
                         className="input w-1/2 text-sm"
                     />
                 </div>
@@ -166,7 +201,7 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
             {/* Mobile Filter Button */}
             <button
                 onClick={() => setIsMobileOpen(true)}
-                className="lg:hidden fixed bottom-6 right-6 z-40 btn btn-primary shadow-lg"
+                className="max-lg:flex lg:!hidden fixed bottom-6 right-6 z-40 btn btn-primary shadow-lg"
             >
                 <Filter size={20} />
                 {isTr ? 'Filtrele' : 'Filter'}
