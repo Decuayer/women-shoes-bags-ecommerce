@@ -19,9 +19,9 @@ interface DashboardStatsClientProps {
         deliveredAmount: number
         totalPaidAmount: number
         trends: {
-            revenue: number
-            orders: number
-            users: number
+            revenue: number | null
+            orders: number | null
+            users: number | null
         }
     }
     locale: string
@@ -44,7 +44,7 @@ export default function DashboardStatsClient({ stats, locale }: DashboardStatsCl
                     title={isTr ? 'Toplam Ciro' : 'Total Revenue'}
                     value={formatMoney(stats.totalRevenue)}
                     icon={DollarSign}
-                    trend={{ value: stats.trends.revenue, isPositive: stats.trends.revenue >= 0 }}
+                    trend={stats.trends.revenue !== null ? { value: stats.trends.revenue, isPositive: stats.trends.revenue >= 0 } : undefined}
                     description={isTr ? 'Geçen aya göre' : 'vs last month'}
                     className="bg-indigo-50 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-800"
                 />
@@ -62,7 +62,7 @@ export default function DashboardStatsClient({ stats, locale }: DashboardStatsCl
                     title={isTr ? 'Toplam Sipariş' : 'Total Orders'}
                     value={stats.totalOrders}
                     icon={ShoppingBag}
-                    trend={{ value: stats.trends.orders, isPositive: stats.trends.orders >= 0 }}
+                    trend={stats.trends.orders !== null ? { value: stats.trends.orders, isPositive: stats.trends.orders >= 0 } : undefined}
                     description={isTr ? 'Geçen aya göre' : 'vs last month'}
                 />
 
@@ -71,7 +71,7 @@ export default function DashboardStatsClient({ stats, locale }: DashboardStatsCl
                     title={isTr ? 'Müşteriler' : 'Total Users'}
                     value={stats.totalUsers}
                     icon={Users}
-                    trend={{ value: stats.trends.users, isPositive: stats.trends.users >= 0 }}
+                    trend={stats.trends.users !== null ? { value: stats.trends.users, isPositive: stats.trends.users >= 0 } : undefined}
                     description={isTr ? 'Geçen aya göre' : 'vs last month'}
                 />
             </div>

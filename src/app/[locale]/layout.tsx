@@ -16,6 +16,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata = {
     title: 'CRAZYSHOES - Premium Women Shoes & Bags',
     description: 'Discover premium women shoes and bags. Shop the latest collection of elegant footwear and luxury handbags.',
+    icons: {
+        icon: '/crazyshoes_nobackground.png',
+        apple: '/crazyshoes_nobackground.png',
+    },
 }
 
 export default async function RootLayout({

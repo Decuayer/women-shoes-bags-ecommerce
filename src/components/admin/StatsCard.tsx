@@ -29,7 +29,7 @@ export default function StatsCard({ title, value, icon: Icon, trend, description
                 <div className="mt-4 flex items-center gap-2 text-sm">
                     {trend && (
                         <span className={`font-medium ${trend.isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                            {trend.isPositive ? '+' : ''}{trend.value}%
+                            {trend.isPositive ? '+' : ''}{Math.round(trend.value)}%
                         </span>
                     )}
                     {description && (

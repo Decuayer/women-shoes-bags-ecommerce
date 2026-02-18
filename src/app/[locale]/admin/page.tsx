@@ -109,13 +109,19 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
     // Trends Calculation
     const currentMonthRevenue = ordersCurrentMonth.reduce((acc: number, curr: any) => acc + (curr._sum.total?.toNumber() ?? 0), 0)
     const lastMonthRevenue = ordersLastMonth.reduce((acc: number, curr: any) => acc + (curr._sum.total?.toNumber() ?? 0), 0)
-    const revenueTrend = lastMonthRevenue === 0 ? 100 : ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+    const revenueTrend = lastMonthRevenue === 0
+        ? null
+        : Math.round(((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
 
     const currentMonthOrders = ordersCurrentMonth.reduce((acc: number, curr: any) => acc + curr._count, 0)
     const lastMonthOrders = ordersLastMonth.reduce((acc: number, curr: any) => acc + curr._count, 0)
-    const orderTrend = lastMonthOrders === 0 ? 100 : ((currentMonthOrders - lastMonthOrders) / lastMonthOrders) * 100
+    const orderTrend = lastMonthOrders === 0
+        ? null
+        : Math.round(((currentMonthOrders - lastMonthOrders) / lastMonthOrders) * 100)
 
-    const userTrend = userCountLastMonth === 0 ? 100 : ((userCount - userCountLastMonth) / userCountLastMonth) * 100
+    const userTrend = userCountLastMonth === 0
+        ? null
+        : Math.round(((userCount - userCountLastMonth) / userCountLastMonth) * 100)
 
     // --- CHART DATA (Last 30 Days) ---
     // 1. Calculate Date Range (Midnight to Midnight)
