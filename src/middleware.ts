@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyAccessTokenEdge } from './lib/auth-edge'
 
-const locales = ['tr', 'en']
+const locales = ['tr']
 
 const intlMiddleware = createMiddleware({
     locales,

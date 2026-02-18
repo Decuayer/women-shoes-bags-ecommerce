@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Globe } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
@@ -13,9 +13,7 @@ export default function AdminHeader({ locale }: AdminHeaderProps) {
     const { user, loading } = useAuth()
     const pathname = usePathname()
 
-    // Calculate language switch path
-    const otherLocale = locale === 'tr' ? 'en' : 'tr'
-    const switchLocalePath = pathname.replace(`/${locale}`, `/${otherLocale}`)
+
 
     // Get user initials
     const getInitials = () => {
@@ -49,15 +47,7 @@ export default function AdminHeader({ locale }: AdminHeaderProps) {
                     <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full" />
                 </button>
 
-                {/* Language Switcher */}
-                <Link
-                    href={switchLocalePath}
-                    className="p-2 text-text-muted hover:text-text hover:bg-surface-light rounded-full transition-colors flex items-center gap-1"
-                    title={locale === 'tr' ? 'Dil Değiştir' : 'Switch Language'}
-                >
-                    <Globe size={20} />
-                    <span className="text-xs uppercase font-medium hidden lg:inline">{otherLocale}</span>
-                </Link>
+
 
                 {/* User Profile */}
                 <div className="flex items-center gap-3 pl-4 border-l border-border">
@@ -72,8 +62,8 @@ export default function AdminHeader({ locale }: AdminHeaderProps) {
                                 <p className="text-sm font-medium">{getDisplayName()}</p>
                                 {user?.role && (
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${user.role === 'ADMIN'
-                                            ? 'bg-secondary/20 text-secondary'
-                                            : 'bg-surface-light text-text-muted'
+                                        ? 'bg-secondary/20 text-secondary'
+                                        : 'bg-surface-light text-text-muted'
                                         }`}>
                                         {user.role}
                                     </span>

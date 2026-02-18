@@ -22,8 +22,8 @@ export default function CategoryShowcase({ locale }: CategoryShowcaseProps) {
             id: 'bags',
             name: isTr ? 'Çantalar' : 'Bags',
             description: isTr
-                ? 'Premium kalite deri çantalar'
-                : 'Premium quality leather bags',
+                ? 'Premium kalite çantalar'
+                : 'Premium quality bags',
             image: '/images/categories/bags.jpg',
             color: 'from-rose-900/80 to-rose-950/80'
         },

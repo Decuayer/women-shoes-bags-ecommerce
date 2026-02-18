@@ -11,7 +11,6 @@ import {
     User,
     Menu,
     X,
-    Globe,
 } from 'lucide-react'
 import { useCart } from '@/components/cart/CartContext'
 import CartDrawer from '@/components/cart/CartDrawer'
@@ -41,8 +40,7 @@ export default function Header({ locale, settings }: HeaderProps) {
         { href: `/${locale}/contact`, label: t('contact') },
     ]
 
-    const otherLocale = locale === 'tr' ? 'en' : 'tr'
-    const switchLocalePath = pathname.replace(`/${locale}`, `/${otherLocale}`)
+
 
     return (
         <>
@@ -126,15 +124,7 @@ export default function Header({ locale, settings }: HeaderProps) {
                                 )}
                             </button>
 
-                            {/* Language Switcher */}
-                            <Link
-                                href={switchLocalePath}
-                                className="btn-ghost p-2 flex items-center gap-1 text-sm"
-                                title={locale === 'tr' ? 'Switch to English' : 'Türkçe\'ye geç'}
-                            >
-                                <Globe size={18} />
-                                <span className="hidden md:inline uppercase">{otherLocale}</span>
-                            </Link>
+
                         </div>
                     </div>
 
