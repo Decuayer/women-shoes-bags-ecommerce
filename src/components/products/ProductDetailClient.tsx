@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ShoppingBag, Heart, Share2, Minus, Plus } from 'lucide-react'
+import { ShoppingBag, Share2, Minus, Plus } from 'lucide-react'
 import ProductGallery from './ProductGallery'
 import VariantSelector from './VariantSelector'
 import WishlistButton from './WishlistButton'
@@ -25,6 +25,13 @@ interface Feature {
     desc_en: string
 }
 
+interface ProductImage {
+    id: string
+    url: string
+    alt: string
+    colorKey?: string | null
+}
+
 interface ProductDetailClientProps {
     product: {
         id: string
@@ -39,11 +46,7 @@ interface ProductDetailClientProps {
             name: string
             slug: string
         }
-        images: {
-            id: string
-            url: string
-            alt: string
-        }[]
+        images: ProductImage[]
         variants: Variant[]
     }
     locale: string
@@ -57,6 +60,10 @@ export default function ProductDetailClient({ product, locale, initialIsWishlist
     const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
     const [quantity, setQuantity] = useState(1)
     const [isAdded, setIsAdded] = useState(false)
+
+    // Track selected color to drive gallery filtering
+    const initialColor = product.variants[0]?.color || ''
+    const [selectedColor, setSelectedColor] = useState<string>(initialColor)
 
     const discount = product.compareAtPrice
         ? Math.round((1 - product.price / product.compareAtPrice) * 100)
@@ -87,8 +94,12 @@ export default function ProductDetailClient({ product, locale, initialIsWishlist
 
     return (
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-            {/* Product Gallery */}
-            <ProductGallery images={product.images} productName={product.name} />
+            {/* Product Gallery - receives selectedColor to filter images */}
+            <ProductGallery
+                images={product.images}
+                productName={product.name}
+                selectedColor={selectedColor}
+            />
 
             {/* Product Info */}
             <div className="space-y-6">
@@ -124,13 +135,11 @@ export default function ProductDetailClient({ product, locale, initialIsWishlist
                 {/* Variant Selector */}
                 <div className="py-4 border-y border-border">
                     <VariantSelector
-                        variants={product.variants.map(v => ({
-                            ...v,
-                            color: locale === 'tr' ? v.color : v.color // Will be localized from API
-                        }))}
+                        variants={product.variants}
                         locale={locale}
                         selectedVariant={selectedVariant}
                         onVariantChange={setSelectedVariant}
+                        onColorChange={setSelectedColor}
                     />
                 </div>
 
@@ -165,7 +174,10 @@ export default function ProductDetailClient({ product, locale, initialIsWishlist
                             }`}
                     >
                         <ShoppingBag size={20} />
-                        {isTr ? 'Sepete Ekle' : 'Add to Cart'}
+                        {isAdded
+                            ? (isTr ? 'Eklendi!' : 'Added!')
+                            : (isTr ? 'Sepete Ekle' : 'Add to Cart')
+                        }
                     </button>
                     <WishlistButton
                         productId={product.id}

@@ -1,24 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react'
 
 interface Image {
     id: string
     url: string
     alt: string
+    colorKey?: string | null
 }
 
 interface ProductGalleryProps {
     images: Image[]
     productName: string
+    selectedColor?: string
 }
 
-export default function ProductGallery({ images, productName }: ProductGalleryProps) {
+export default function ProductGallery({ images, productName, selectedColor }: ProductGalleryProps) {
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isZoomed, setIsZoomed] = useState(false)
 
-    if (images.length === 0) {
+    // Filter images based on selected color:
+    // - images with no colorKey (null/undefined) always show
+    // - images with a colorKey only show when that color is selected
+    const filteredImages = selectedColor
+        ? images.filter(img => !img.colorKey || img.colorKey === selectedColor)
+        : images
+
+    // If filtering yields nothing, fall back to all unkeyed images
+    const displayImages = filteredImages.length > 0
+        ? filteredImages
+        : images.filter(img => !img.colorKey)
+
+    // Reset to first image when color changes
+    useEffect(() => {
+        setCurrentIndex(0)
+        setIsZoomed(false)
+    }, [selectedColor])
+
+    if (displayImages.length === 0) {
         return (
             <div className="aspect-[3/4] bg-surface rounded-2xl flex items-center justify-center">
                 <span className="text-text-dark text-lg">{productName}</span>
@@ -26,14 +46,14 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
         )
     }
 
-    const currentImage = images[currentIndex]
+    const currentImage = displayImages[currentIndex] || displayImages[0]
 
     const nextImage = () => {
-        setCurrentIndex((prev) => (prev + 1) % images.length)
+        setCurrentIndex((prev) => (prev + 1) % displayImages.length)
     }
 
     const prevImage = () => {
-        setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
+        setCurrentIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length)
     }
 
     return (
@@ -47,7 +67,6 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
                         }`}
                     onClick={() => setIsZoomed(!isZoomed)}
                     onError={(e) => {
-                        // Fallback for missing images
                         const target = e.target as HTMLImageElement
                         target.style.display = 'none'
                         target.parentElement!.innerHTML = `
@@ -67,7 +86,7 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
                 </button>
 
                 {/* Navigation Arrows */}
-                {images.length > 1 && (
+                {displayImages.length > 1 && (
                     <>
                         <button
                             onClick={prevImage}
@@ -86,9 +105,9 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
             </div>
 
             {/* Thumbnails */}
-            {images.length > 1 && (
+            {displayImages.length > 1 && (
                 <div className="flex gap-3 overflow-x-auto pb-2 max-w-[calc(100vw-2rem)] md:max-w-none mx-auto no-scrollbar scroll-smooth snap-x">
-                    {images.map((image, index) => (
+                    {displayImages.map((image, index) => (
                         <button
                             key={image.id}
                             onClick={() => setCurrentIndex(index)}

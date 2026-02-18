@@ -17,13 +17,15 @@ interface VariantSelectorProps {
     locale: string
     selectedVariant: Variant | null
     onVariantChange: (variant: Variant | null) => void
+    onColorChange?: (color: string) => void
 }
 
 export default function VariantSelector({
     variants,
     locale,
     selectedVariant,
-    onVariantChange
+    onVariantChange,
+    onColorChange
 }: VariantSelectorProps) {
     const isTr = locale === 'tr'
 
@@ -59,6 +61,7 @@ export default function VariantSelector({
         setSelectedColor(color)
         setSelectedSize('')
         onVariantChange(null)
+        onColorChange?.(color)
     }
 
     const handleSizeChange = (size: string) => {
@@ -88,8 +91,8 @@ export default function VariantSelector({
                                     key={color}
                                     onClick={() => handleColorChange(color)}
                                     className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center ${isSelected
-                                            ? 'border-secondary scale-110'
-                                            : 'border-transparent hover:scale-105'
+                                        ? 'border-secondary scale-110'
+                                        : 'border-transparent hover:scale-105'
                                         }`}
                                     style={{ backgroundColor: hex }}
                                     title={color}
@@ -127,10 +130,10 @@ export default function VariantSelector({
                                 onClick={() => isAvailable && handleSizeChange(size)}
                                 disabled={!isAvailable}
                                 className={`min-w-[48px] h-12 px-4 rounded-lg border text-sm font-medium transition-all ${isSelected
-                                        ? 'border-secondary bg-secondary text-primary'
-                                        : isAvailable
-                                            ? 'border-border text-text hover:border-secondary'
-                                            : 'border-border text-text-dark opacity-50 cursor-not-allowed line-through'
+                                    ? 'border-secondary bg-secondary text-primary'
+                                    : isAvailable
+                                        ? 'border-border text-text hover:border-secondary'
+                                        : 'border-border text-text-dark opacity-50 cursor-not-allowed line-through'
                                     }`}
                             >
                                 {size}

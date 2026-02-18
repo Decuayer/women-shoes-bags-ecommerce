@@ -44,9 +44,10 @@ export async function POST(request: Request) {
             // Create images
             if (images && images.length > 0) {
                 await tx.productImage.createMany({
-                    data: images.map((url: string, index: number) => ({
+                    data: images.map((img: { url: string; colorKey?: string | null }, index: number) => ({
                         productId: product.id,
-                        url,
+                        url: img.url,
+                        colorKey: img.colorKey || null,
                         displayOrder: index
                     }))
                 })

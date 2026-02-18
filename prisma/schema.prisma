@@ -153,6 +153,7 @@ model ProductImage {
   alt_tr        String?
   alt_en        String?
   displayOrder  Int       @default(0)
+  colorKey      String?   // Matches color_tr of a variant; null = shown for all colors
   
   createdAt     DateTime  @default(now())
 

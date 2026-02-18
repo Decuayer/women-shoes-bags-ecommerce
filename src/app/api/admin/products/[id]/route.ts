@@ -50,9 +50,10 @@ export async function PUT(
             await tx.productImage.deleteMany({ where: { productId: id } })
             if (images && images.length > 0) {
                 await tx.productImage.createMany({
-                    data: images.map((url: string, index: number) => ({
+                    data: images.map((img: { url: string; colorKey?: string | null }, index: number) => ({
                         productId: id,
-                        url,
+                        url: img.url,
+                        colorKey: img.colorKey || null,
                         displayOrder: index
                     }))
                 })

@@ -69,9 +69,9 @@ export default async function Footer({ locale }: FooterProps) {
             {/* Features Bar */}
             <div className="border-b border-border">
                 <div className="container py-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 my-4">
+                    <div className="flex flex-wrap justify-center gap-6 my-4">
                         {features.map((feature, index) => (
-                            <div key={index} className="flex items-center gap-4">
+                            <div key={index} className="flex items-center gap-4 min-w-[200px] max-w-[260px] flex-1">
                                 <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
                                     <feature.icon className="text-secondary" size={24} />
                                 </div>
@@ -121,6 +121,7 @@ export default async function Footer({ locale }: FooterProps) {
 
                         {/* Social Links */}
                         <div className="flex gap-3 mt-6">
+                            {/*
                             <a
                                 href={socialMediaSettings.facebook}
                                 target="_blank"
@@ -129,6 +130,8 @@ export default async function Footer({ locale }: FooterProps) {
                             >
                                 <Facebook size={18} />
                             </a>
+                            */}
+
                             <a
                                 href={socialMediaSettings.instagram}
                                 target="_blank"
@@ -137,6 +140,8 @@ export default async function Footer({ locale }: FooterProps) {
                             >
                                 <Instagram size={18} />
                             </a>
+
+                            {/*
                             <a
                                 href={socialMediaSettings.twitter}
                                 target="_blank"
@@ -145,6 +150,7 @@ export default async function Footer({ locale }: FooterProps) {
                             >
                                 <Twitter size={18} />
                             </a>
+                            */}
                         </div>
                     </div>
 

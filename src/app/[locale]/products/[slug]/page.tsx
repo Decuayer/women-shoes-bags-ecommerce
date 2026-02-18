@@ -48,6 +48,7 @@ async function getProduct(slug: string, locale: string) {
             id: img.id,
             url: img.url,
             alt: locale === 'tr' ? (img.alt_tr || product.name_tr) : (img.alt_en || product.name_en),
+            colorKey: img.colorKey ?? null,
         })),
         variants: product.variants.map((v) => ({
             id: v.id,

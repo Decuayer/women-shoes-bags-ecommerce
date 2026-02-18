@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Save, Loader2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import ImageUploader from './ImageUploader'
+import ImageUploader, { ImageItem } from './ImageUploader'
 import VariantManager from './VariantManager'
 import { useToast } from '@/context/ToastContext'
 
@@ -25,8 +25,11 @@ export default function ProductForm({ initialData, categories, locale }: Product
     const isTr = locale === 'tr'
     const { addToast } = useToast()
     const [isLoading, setIsLoading] = useState(false)
-    const [images, setImages] = useState<{ file?: File; url: string }[]>(
-        initialData?.images?.map((img: any) => ({ url: img.url })) || []
+    const [images, setImages] = useState<ImageItem[]>(
+        initialData?.images?.map((img: any) => ({
+            url: img.url,
+            colorKey: img.colorKey ?? null
+        })) || []
     )
     const [variants, setVariants] = useState<any[]>(
         initialData?.variants || []
@@ -51,49 +54,56 @@ export default function ProductForm({ initialData, categories, locale }: Product
         setFormData(prev => ({ ...prev, [field]: value }))
     }
 
+    // Derive unique colors from variants for the image uploader
+    const availableColors = (() => {
+        const seen = new Set<string>()
+        const result: { color_tr: string; colorHex: string }[] = []
+        for (const v of variants) {
+            if (v.color_tr && !seen.has(v.color_tr)) {
+                seen.add(v.color_tr)
+                result.push({ color_tr: v.color_tr, colorHex: v.colorHex || '#888888' })
+            }
+        }
+        return result
+    })()
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
 
         try {
-            // First upload images if there are new files
-            const uploadedImageUrls: string[] = []
+            // Upload new images (those with a File object)
+            const uploadedImages: { url: string; colorKey: string | null }[] = []
 
-            // For existing images, keep their URLs
-            const existingImages = images.filter(img => !img.file).map(img => img.url)
-
-            // Upload new images
-            const newImages = images.filter(img => img.file)
-
-            for (const img of newImages) {
+            for (const img of images) {
                 if (img.file) {
-                    const formData = new FormData()
-                    formData.append('file', img.file)
+                    const fd = new FormData()
+                    fd.append('file', img.file)
 
                     const res = await fetch('/api/upload', {
                         method: 'POST',
-                        body: formData
+                        body: fd
                     })
 
                     if (res.ok) {
                         const data = await res.json()
-                        uploadedImageUrls.push(data.url)
+                        uploadedImages.push({ url: data.url, colorKey: img.colorKey ?? null })
                     }
+                } else {
+                    // Existing image - keep url and colorKey
+                    uploadedImages.push({ url: img.url, colorKey: img.colorKey ?? null })
                 }
             }
-
-            const finalImages = [...existingImages, ...uploadedImageUrls]
 
             // Prepare payload - auto-populate English fields from Turkish
             const payload = {
                 ...formData,
-                // Auto-fill English fields with Turkish content
                 name_en: formData.name_tr,
                 description_en: formData.description_tr,
                 material_en: formData.material_tr,
                 price: Number(formData.price),
                 compareAtPrice: formData.compareAtPrice ? Number(formData.compareAtPrice) : null,
-                images: finalImages,
+                images: uploadedImages,
                 variants: variants
             }
 
@@ -114,9 +124,8 @@ export default function ProductForm({ initialData, categories, locale }: Product
                 throw new Error(errorData.message || 'Failed to save product')
             }
 
-            const savedProduct = await res.json()
+            await res.json()
 
-            // Show success toast
             addToast(
                 isTr
                     ? `"${formData.name_tr}" başarıyla ${initialData ? 'güncellendi' : 'eklendi'}!`
@@ -130,7 +139,6 @@ export default function ProductForm({ initialData, categories, locale }: Product
         } catch (error: any) {
             console.error('Save error:', error)
 
-            // Show detailed error toast
             addToast(
                 error.message || (isTr ? 'Ürün kaydedilemedi' : 'Failed to save product'),
                 'error',
@@ -225,20 +233,27 @@ export default function ProductForm({ initialData, categories, locale }: Product
                         </div>
                     </div>
 
-                    {/* Media */}
-                    <div className="bg-surface border border-border rounded-xl p-6">
-                        <h2 className="font-bold text-lg mb-4 border-b border-border pb-2">
-                            Ürün Görselleri
-                        </h2>
-                        <ImageUploader images={images} onChange={setImages} />
-                    </div>
-
-                    {/* Variants */}
+                    {/* Variants - placed BEFORE images so colors are available */}
                     <div className="bg-surface border border-border rounded-xl p-6">
                         <h2 className="font-bold text-lg mb-4 border-b border-border pb-2">
                             Varyantlar & Stok
                         </h2>
                         <VariantManager variants={variants} onChange={setVariants} locale={locale} />
+                    </div>
+
+                    {/* Media - after variants so color list is populated */}
+                    <div className="bg-surface border border-border rounded-xl p-6">
+                        <h2 className="font-bold text-lg mb-1 border-b border-border pb-2">
+                            Ürün Görselleri
+                        </h2>
+                        <p className="text-xs text-text-muted mb-4">
+                            Görselleri önce varyantları ekledikten sonra yükleyin; böylece her görseli bir renge atayabilirsiniz.
+                        </p>
+                        <ImageUploader
+                            images={images}
+                            onChange={setImages}
+                            availableColors={availableColors}
+                        />
                     </div>
                 </div>
 
