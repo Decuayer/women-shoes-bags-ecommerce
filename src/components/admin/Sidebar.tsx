@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, ShoppingBag, Users, Settings, Tags, LogOut, MessageSquare } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingBag, Users, Settings, Tags, LogOut, MessageSquare, Ticket, Star } from 'lucide-react'
 
 interface SidebarProps {
     locale: string
@@ -34,9 +34,19 @@ export default function Sidebar({ locale }: SidebarProps) {
             href: `/${locale}/admin/categories`
         },
         {
+            title: isTr ? 'Kuponlar' : 'Coupons',
+            icon: Ticket,
+            href: `/${locale}/admin/coupons`
+        },
+        {
             title: isTr ? 'Müşteriler' : 'Customers',
             icon: Users,
             href: `/${locale}/admin/users`
+        },
+        {
+            title: isTr ? 'Değerlendirmeler' : 'Reviews',
+            icon: Star,
+            href: `/${locale}/admin/reviews`
         },
         {
             title: isTr ? 'Mesajlar' : 'Messages',

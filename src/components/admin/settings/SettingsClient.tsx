@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUploader from '@/components/admin/products/ImageUploader'
-import { Save, Loader2, Plus, Trash2, Phone, Share2, Star, Globe, Images, Megaphone } from 'lucide-react'
+import { Save, Loader2, Plus, Trash2, Phone, Share2, Star, Globe, Images, Megaphone, Truck } from 'lucide-react'
 import IconPicker from './IconPicker'
 import { useToast } from '@/context/ToastContext'
 
@@ -19,13 +19,13 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
     const [activeTab, setActiveTab] = useState('general')
     const [isLoading, setIsLoading] = useState(false)
 
-    // Parse existing settings
     const sliderSettings = settings.find(s => s.key === 'hero_slider')
     const announcementSettings = settings.find(s => s.key === 'announcement_bar')
     const generalSettings = settings.find(s => s.key === 'site_general')
     const contactSettings = settings.find(s => s.key === 'contact_info')
     const socialSettings = settings.find(s => s.key === 'social_media')
     const featureSettings = settings.find(s => s.key === 'feature_highlights')
+    const shippingSettingsData = settings.find(s => s.key === 'shipping_settings')
 
     // State for Sliders
     const [sliders, setSliders] = useState<any[]>(
@@ -66,6 +66,12 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
         (featureSettings?.jsonData as any[]) || []
     )
 
+    // State for Shipping
+    const [shipping, setShipping] = useState({
+        shippingCost: (shippingSettingsData?.jsonData as any)?.shippingCost ?? 50,
+        freeShippingThreshold: (shippingSettingsData?.jsonData as any)?.freeShippingThreshold ?? 1500,
+    })
+
     // Initialize default features if empty
     useEffect(() => {
         if (featureSettings && !featureSettings.jsonData && features.length === 0) {
@@ -75,8 +81,8 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
                     icon: 'Truck',
                     title_tr: 'Ücretsiz Kargo',
                     title_en: 'Free Shipping',
-                    desc_tr: '1500 TL üzeri siparişlerde',
-                    desc_en: 'On orders over 1500 TL',
+                    desc_tr: '1750 TL üzeri siparişlerde',
+                    desc_en: 'On orders over 1750 TL',
                     isActive: true
                 },
                 // ... add other defaults if needed, but usually empty is fine to start
@@ -177,8 +183,22 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
                 method: 'POST',
                 body: JSON.stringify({
                     key: 'feature_highlights',
-                    type: 'GENERAL', // Using generic type as it stores JSON array
+                    type: 'GENERAL',
                     jsonData: features,
+                    isActive: true
+                })
+            }))
+
+            // Save Shipping Settings
+            promises.push(fetch('/api/admin/settings', {
+                method: 'POST',
+                body: JSON.stringify({
+                    key: 'shipping_settings',
+                    type: 'GENERAL',
+                    jsonData: {
+                        shippingCost: Number(shipping.shippingCost),
+                        freeShippingThreshold: Number(shipping.freeShippingThreshold),
+                    },
                     isActive: true
                 })
             }))
@@ -269,6 +289,7 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
 
     const tabs = [
         { id: 'general', label: isTr ? 'Genel' : 'General', icon: Globe },
+        { id: 'shipping', label: isTr ? 'Kargo' : 'Shipping', icon: Truck },
         { id: 'contact', label: isTr ? 'İletişim' : 'Contact', icon: Phone },
         { id: 'social', label: isTr ? 'Sosyal Medya' : 'Social Media', icon: Share2 },
         { id: 'features', label: isTr ? 'Öne Çıkanlar' : 'Features', icon: Star },
@@ -347,6 +368,64 @@ export default function SettingsClient({ settings, locale }: SettingsClientProps
                                 />
                                 <p className="text-xs text-text-muted mt-1">{isTr ? 'İkinci kısım (Açık)' : 'Second part (Light)'}</p>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* SHIPPING TAB */}
+                {activeTab === 'shipping' && (
+                    <div className="space-y-6 max-w-lg">
+                        <div className="p-4 bg-surface-light border border-border rounded-lg">
+                            <p className="text-sm text-text-muted">
+                                {isTr
+                                    ? 'Bu ayarlar tüm siparişlerdeki kargo ücretini ve ücretsiz kargo limitini belirler.'
+                                    : 'These settings define the shipping cost and free shipping threshold for all orders.'}
+                            </p>
+                        </div>
+                        <div>
+                            <label className="label">{isTr ? 'Kargo Ücreti (TL)' : 'Shipping Cost (TL)'}</label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                className="input w-full"
+                                value={shipping.shippingCost}
+                                onChange={(e) => setShipping({ ...shipping, shippingCost: Number(e.target.value) })}
+                                placeholder="50"
+                            />
+                            <p className="text-xs text-text-muted mt-1">
+                                {isTr ? 'Sepet limiti altındaki siparişlerde uygulanacak kargo ücreti' : 'Shipping fee applied to orders below the free shipping threshold'}
+                            </p>
+                        </div>
+                        <div>
+                            <label className="label">{isTr ? 'Ücretsiz Kargo Limiti (TL)' : 'Free Shipping Threshold (TL)'}</label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="50"
+                                className="input w-full"
+                                value={shipping.freeShippingThreshold}
+                                onChange={(e) => setShipping({ ...shipping, freeShippingThreshold: Number(e.target.value) })}
+                                placeholder="1500"
+                            />
+                            <p className="text-xs text-text-muted mt-1">
+                                {isTr
+                                    ? `Bu tutarın üzerindeki siparişlerde kargo ücretsizdir. Şu an: ${shipping.freeShippingThreshold} TL`
+                                    : `Orders above this amount get free shipping. Currently: ${shipping.freeShippingThreshold} TL`
+                                }
+                            </p>
+                        </div>
+
+                        {/* Preview */}
+                        <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
+                            <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                                <Truck size={16} className="text-success" />
+                                {isTr ? 'Önizleme' : 'Preview'}
+                            </h4>
+                            <ul className="text-sm text-text-muted space-y-1">
+                                <li>• {isTr ? `${shipping.freeShippingThreshold} TL altı siparişlerde` : `Orders under ${shipping.freeShippingThreshold} TL`}: <span className="font-medium text-text">{shipping.shippingCost} TL</span></li>
+                                <li>• {isTr ? `${shipping.freeShippingThreshold} TL ve üzeri siparişlerde` : `Orders of ${shipping.freeShippingThreshold} TL+`}: <span className="font-medium text-success">{isTr ? 'Ücretsiz Kargo' : 'Free Shipping'}</span></li>
+                            </ul>
                         </div>
                     </div>
                 )}

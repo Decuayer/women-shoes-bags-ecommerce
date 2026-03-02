@@ -9,11 +9,19 @@ interface EditCategoryPageProps {
 export default async function EditCategoryPage({ params }: EditCategoryPageProps) {
     const { locale, id } = await params
 
-    const category = await prisma.category.findUnique({
-        where: { id }
-    })
+    const [category, parentCategories] = await Promise.all([
+        prisma.category.findUnique({
+            where: { id },
+            select: { id: true, name_tr: true, name_en: true, parentId: true }
+        }),
+        prisma.category.findMany({
+            where: { parentId: null, isActive: true },
+            select: { id: true, name_tr: true, name_en: true },
+            orderBy: { name_en: 'asc' }
+        })
+    ])
 
     if (!category) notFound()
 
-    return <CategoryForm initialData={category} locale={locale} />
+    return <CategoryForm initialData={category} parentCategories={parentCategories} locale={locale} />
 }

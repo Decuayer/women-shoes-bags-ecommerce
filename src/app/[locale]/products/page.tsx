@@ -40,7 +40,22 @@ async function getProducts(locale: string, filters: {
     }
 
     if (filters.category) {
-        where.category = { slug: filters.category }
+        // Find the category and check if it has subcategories
+        const cat = await prisma.category.findUnique({
+            where: { slug: filters.category },
+            include: { children: { select: { id: true } } }
+        })
+
+        if (cat) {
+            if (cat.children && cat.children.length > 0) {
+                // Parent category selected: include products from this category AND all subcategories
+                const allCategoryIds = [cat.id, ...cat.children.map(c => c.id)]
+                where.categoryId = { in: allCategoryIds }
+            } else {
+                // Leaf category (no children) or subcategory
+                where.category = { slug: filters.category }
+            }
+        }
     }
 
     if (filters.minPrice || filters.maxPrice) {
@@ -86,6 +101,10 @@ async function getProducts(locale: string, filters: {
                         orderBy: { displayOrder: 'asc' },
                         take: 1,
                     },
+                    reviews: {
+                        where: { isApproved: true },
+                        select: { rating: true }
+                    }
                 },
                 orderBy,
                 skip,
@@ -95,22 +114,31 @@ async function getProducts(locale: string, filters: {
         ])
 
         return {
-            products: products.map((product) => ({
-                id: product.id,
-                slug: product.slug,
-                name: locale === 'tr' ? product.name_tr : product.name_en,
-                price: Number(product.price),
-                compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
-                category: {
-                    name: locale === 'tr' ? product.category.name_tr : product.category.name_en,
-                    slug: product.category.slug,
-                },
-                images: product.images.map((img) => ({
-                    url: img.url,
-                    alt: locale === 'tr' ? (img.alt_tr || product.name_tr) : (img.alt_en || product.name_en),
-                })),
-                rating: 4.5, // Placeholder
-            })),
+            products: products.map((product) => {
+                // Calculate average rating from real reviews
+                const approvedReviews = product.reviews || []
+                const avgRating = approvedReviews.length > 0
+                    ? Number((approvedReviews.reduce((sum, r) => sum + r.rating, 0) / approvedReviews.length).toFixed(1))
+                    : null
+
+                return {
+                    id: product.id,
+                    slug: product.slug,
+                    name: locale === 'tr' ? product.name_tr : product.name_en,
+                    price: Number(product.price),
+                    compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+                    category: {
+                        name: locale === 'tr' ? product.category.name_tr : product.category.name_en,
+                        slug: product.category.slug,
+                    },
+                    images: product.images.map((img) => ({
+                        url: img.url,
+                        alt: locale === 'tr' ? (img.alt_tr || product.name_tr) : (img.alt_en || product.name_en),
+                    })),
+                    rating: avgRating,
+                    reviewCount: approvedReviews.length,
+                }
+            }),
             total,
             page,
             totalPages: Math.ceil(total / limit),
@@ -118,7 +146,6 @@ async function getProducts(locale: string, filters: {
     } catch (error) {
         console.error('❌ Database query failed in getProducts:', error)
 
-        // Check if it's a timeout error
         const isTimeout = error instanceof Error && (
             error.message.includes('timeout') ||
             error.message.includes('exceeded')
@@ -128,7 +155,6 @@ async function getProducts(locale: string, filters: {
             console.error('🕒 Database connection timeout - check your database connection and network')
         }
 
-        // Return empty results instead of crashing the page
         return {
             products: [],
             total: 0,
@@ -142,6 +168,13 @@ async function getCategories(locale: string) {
     try {
         const categories = await prisma.category.findMany({
             where: { isActive: true },
+            include: {
+                children: {
+                    where: { isActive: true },
+                    select: { id: true, slug: true, name_tr: true, name_en: true, parentId: true },
+                    orderBy: { displayOrder: 'asc' }
+                }
+            },
             orderBy: { displayOrder: 'asc' },
         })
 
@@ -149,6 +182,13 @@ async function getCategories(locale: string) {
             id: cat.id,
             slug: cat.slug,
             name: locale === 'tr' ? cat.name_tr : cat.name_en,
+            parentId: cat.parentId,
+            children: cat.children.map((child) => ({
+                id: child.id,
+                slug: child.slug,
+                name: locale === 'tr' ? child.name_tr : child.name_en,
+                parentId: child.parentId,
+            }))
         }))
     } catch (error) {
         console.error('❌ Failed to fetch categories:', error)
@@ -158,7 +198,6 @@ async function getCategories(locale: string) {
 
 async function getFilterOptions() {
     try {
-        // Get unique colors and sizes from variants
         const variants = await prisma.productVariant.findMany({
             where: { stock: { gt: 0 } },
             select: {
@@ -238,6 +277,25 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
         getAnnouncementSettings(),
     ])
 
+    // Find current category (could be a subcategory)
+    let currentCategoryName: string | undefined
+    if (filters.category) {
+        // Search in parents
+        const parent = categories.find(c => c.slug === filters.category)
+        if (parent) {
+            currentCategoryName = parent.name
+        } else {
+            // Search in children
+            for (const cat of categories) {
+                const child = cat.children?.find(ch => ch.slug === filters.category)
+                if (child) {
+                    currentCategoryName = child.name
+                    break
+                }
+            }
+        }
+    }
+
     // Build pagination URL helper
     const buildPageUrl = (pageNum: number) => {
         const params = new URLSearchParams()
@@ -262,7 +320,7 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
                         <div className="mb-8">
                             <h1 className="text-3xl md:text-4xl font-bold mb-2">
                                 {filters.category
-                                    ? categories.find(c => c.slug === filters.category)?.name || (isTr ? 'Ürünler' : 'Products')
+                                    ? currentCategoryName || (isTr ? 'Ürünler' : 'Products')
                                     : (isTr ? 'Tüm Ürünler' : 'All Products')
                                 }
                             </h1>
@@ -338,7 +396,6 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
 
                                         {[...Array(totalPages)].map((_, i) => {
                                             const pageNum = i + 1
-                                            // Show first, last, current, and adjacent pages
                                             if (
                                                 pageNum === 1 ||
                                                 pageNum === totalPages ||

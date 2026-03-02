@@ -180,7 +180,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
                                             {isTr ? 'Ücretsiz Kargo Seçeneği' : 'Free Shipping Option'}
                                         </h4>
                                         <p className="text-sm text-text-muted">
-                                            {isTr ? '1500 TL üzeri alışverişlerde ücretsiz kargo.' : 'Free shipping on purchases over 1500 TL.'}
+                                            {isTr ? '1750 TL üzeri alışverişlerde ücretsiz kargo.' : 'Free shipping on purchases over 1750 TL.'}
                                         </p>
                                     </div>
                                 </div>

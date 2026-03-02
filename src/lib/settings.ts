@@ -133,8 +133,8 @@ export async function getFeatureHighlights(): Promise<FeatureHighlight[]> {
                 icon: 'Truck',
                 title_tr: 'Ücretsiz Kargo',
                 title_en: 'Free Shipping',
-                desc_tr: '1500 TL üzeri siparişlerde',
-                desc_en: 'On orders over 1500 TL',
+                desc_tr: '1750 TL üzeri siparişlerde',
+                desc_en: 'On orders over 1750 TL',
                 isActive: true
             },
             {

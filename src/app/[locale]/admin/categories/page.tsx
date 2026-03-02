@@ -12,9 +12,24 @@ export default async function CategoryListPage({ params }: CategoryListPageProps
         include: {
             _count: {
                 select: { products: true }
+            },
+            parent: {
+                select: { id: true, name_en: true, name_tr: true }
+            },
+            children: {
+                select: {
+                    id: true,
+                    name_en: true,
+                    name_tr: true,
+                    slug: true,
+                    isActive: true,
+                    displayOrder: true,
+                    _count: { select: { products: true } }
+                },
+                orderBy: { displayOrder: 'asc' }
             }
         },
-        orderBy: { name_en: 'asc' }
+        orderBy: [{ displayOrder: 'asc' }, { name_en: 'asc' }]
     })
 
     return (

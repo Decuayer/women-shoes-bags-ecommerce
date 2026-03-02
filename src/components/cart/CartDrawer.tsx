@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCart } from './CartContext'
-import { ShoppingBag, X, Minus, Plus, Trash2 } from 'lucide-react'
+import { ShoppingBag, X, Minus, Plus, Trash2, Sparkles } from 'lucide-react'
 
 interface CartDrawerProps {
     isOpen: boolean
@@ -10,9 +10,35 @@ interface CartDrawerProps {
     locale: string
 }
 
+// Cross-sell mapping: if cart has items from these category slugs, suggest the complementary category
+const CROSS_SELL_MAP: Record<string, { targetSlug: string; label_tr: string; label_en: string; desc_tr: string; desc_en: string }> = {
+    'shoes': { targetSlug: 'bags', label_tr: 'Çantaya ne dersiniz?', label_en: 'How about a bag?', desc_tr: 'Ayakkabılarınızla harika uyum sağlayacak çantalar', desc_en: 'Bags that pair perfectly with your shoes' },
+    'bags': { targetSlug: 'shoes', label_tr: 'Ayakkabıya ne dersiniz?', label_en: 'How about shoes?', desc_tr: 'Çantanızı tamamlayacak ayakkabılar', desc_en: 'Shoes that complete your bag look' },
+    'ayakkabi': { targetSlug: 'canta', label_tr: 'Çantaya ne dersiniz?', label_en: 'How about a bag?', desc_tr: 'Ayakkabılarınızla harika uyum sağlayacak çantalar', desc_en: 'Bags that pair perfectly with your shoes' },
+    'canta': { targetSlug: 'ayakkabi', label_tr: 'Ayakkabıya ne dersiniz?', label_en: 'How about shoes?', desc_tr: 'Çantanızı tamamlayacak ayakkabılar', desc_en: 'Shoes that complete your bag look' },
+}
+
+function getCrossSell(items: { categorySlug?: string }[], isTr: boolean) {
+    if (!items.length) return null
+    for (const item of items) {
+        const cat = item.categorySlug?.toLowerCase() || ''
+        const key = Object.keys(CROSS_SELL_MAP).find(k => cat.includes(k))
+        if (key) {
+            const s = CROSS_SELL_MAP[key]
+            return {
+                href: s.targetSlug,
+                label: isTr ? s.label_tr : s.label_en,
+                desc: isTr ? s.desc_tr : s.desc_en,
+            }
+        }
+    }
+    return null
+}
+
 export default function CartDrawer({ isOpen, onClose, locale }: CartDrawerProps) {
     const { items, removeItem, updateQuantity, subtotal, itemCount, isLoading } = useCart()
     const isTr = locale === 'tr'
+    const crossSell = getCrossSell(items, isTr)
 
     if (!isOpen) return null
 
@@ -132,6 +158,24 @@ export default function CartDrawer({ isOpen, onClose, locale }: CartDrawerProps)
                                     </div>
                                 </div>
                             ))}
+
+                            {/* Cross-sell Banner */}
+                            {crossSell && (
+                                <Link
+                                    href={`/${locale}/products?category=${crossSell.href}`}
+                                    onClick={onClose}
+                                    className="flex items-center gap-3 p-4 bg-gradient-to-r from-secondary/10 to-secondary/5 border border-secondary/30 rounded-xl hover:border-secondary/60 transition-all group"
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 group-hover:bg-secondary/30 transition-colors">
+                                        <Sparkles size={18} className="text-secondary" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-sm text-secondary">{crossSell.label}</p>
+                                        <p className="text-xs text-text-muted line-clamp-1">{crossSell.desc}</p>
+                                    </div>
+                                    <span className="text-xs text-secondary font-medium shrink-0 group-hover:translate-x-1 transition-transform">→</span>
+                                </Link>
+                            )}
                         </div>
                     )}
                 </div>

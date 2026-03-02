@@ -9,7 +9,7 @@ import { getShippingSettings } from '@/lib/settings'
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { address, cartItems, locale } = body
+        const { address, cartItems, locale, couponCode, discountAmount: clientDiscountAmount } = body
         const isTr = locale === 'tr'
 
         // Securely get user from token
@@ -57,7 +57,12 @@ export async function POST(request: Request) {
         const { freeShippingThreshold, shippingCost: baseShippingCost } = await getShippingSettings()
 
         let subtotal = 0
-        const items = []
+        const items: {
+            product: { id: string; name_tr: string; name_en: string };
+            variant: { id: string; size: string; color_tr: string; color_en: string };
+            quantity: number;
+            price: number;
+        }[] = []
 
         for (const item of cartItems) {
             const variant = await prisma.productVariant.findUnique({
@@ -88,46 +93,86 @@ export async function POST(request: Request) {
         }
 
         const shippingCost = subtotal >= freeShippingThreshold ? 0 : baseShippingCost
-        const total = subtotal + shippingCost
+
+        // Validate coupon server-side (never trust client discount)
+        let validatedDiscountAmount = 0
+        let validatedCouponCode: string | null = null
+        if (couponCode) {
+            const coupon = await prisma.coupon.findUnique({
+                where: { code: couponCode.toUpperCase() }
+            })
+            if (coupon && coupon.isActive &&
+                (!coupon.expiresAt || coupon.expiresAt > new Date()) &&
+                (coupon.usageLimit === null || coupon.usageCount < coupon.usageLimit) &&
+                (!coupon.minOrderAmount || subtotal >= Number(coupon.minOrderAmount))
+            ) {
+                if (coupon.type === 'PERCENTAGE') {
+                    validatedDiscountAmount = (subtotal * Number(coupon.value)) / 100
+                    if (coupon.maxDiscount !== null) {
+                        validatedDiscountAmount = Math.min(validatedDiscountAmount, Number(coupon.maxDiscount))
+                    }
+                } else {
+                    validatedDiscountAmount = Math.min(Number(coupon.value), subtotal)
+                }
+                validatedDiscountAmount = Math.round(validatedDiscountAmount * 100) / 100
+                validatedCouponCode = coupon.code
+            }
+        }
+
+        const total = Math.max(0, subtotal + shippingCost - validatedDiscountAmount)
 
         // 2. Create Pending Order
         const orderNumber = nanoid(10).toUpperCase()
 
-        const order = await prisma.order.create({
-            data: {
-                orderNumber,
-                userId: userId,
-                status: 'PENDING',
-                subtotal,
-                shippingCost,
-                total,
-                paymentStatus: 'PENDING',
+        const order = await prisma.$transaction(async (tx) => {
+            const created = await tx.order.create({
+                data: {
+                    orderNumber,
+                    userId: userId,
+                    status: 'PENDING',
+                    subtotal,
+                    shippingCost,
+                    discountAmount: validatedDiscountAmount,
+                    couponCode: validatedCouponCode,
+                    total,
+                    paymentStatus: 'PENDING',
 
-                // Shipping Address
-                shippingFullName: address.fullName,
-                shippingPhone: address.phone,
-                shippingAddressLine1: address.addressLine1,
-                shippingAddressLine2: address.addressLine2,
-                shippingCity: address.city,
-                shippingState: address.state || address.city, // Fallback to city if state not provided
-                shippingPostalCode: address.postalCode,
-                shippingCountry: address.country,
+                    // Shipping Address
+                    shippingFullName: address.fullName,
+                    shippingPhone: address.phone,
+                    shippingAddressLine1: address.addressLine1,
+                    shippingAddressLine2: address.addressLine2,
+                    shippingCity: address.city,
+                    shippingState: address.state || address.city,
+                    shippingPostalCode: address.postalCode,
+                    shippingCountry: address.country,
 
-                // Items
-                items: {
-                    create: items.map(item => ({
-                        productId: item.product.id,
-                        variantId: item.variant.id,
-                        quantity: item.quantity,
-                        price: item.price,
-                        productName_tr: item.product.name_tr,
-                        productName_en: item.product.name_en,
-                        variantSize: item.variant.size,
-                        variantColor_tr: item.variant.color_tr,
-                        variantColor_en: item.variant.color_en
-                    }))
+                    // Items
+                    items: {
+                        create: items.map((item: { product: { id: string; name_tr: string; name_en: string }; variant: { id: string; size: string; color_tr: string; color_en: string }; quantity: number; price: number }) => ({
+                            productId: item.product.id,
+                            variantId: item.variant.id,
+                            quantity: item.quantity,
+                            price: item.price,
+                            productName_tr: item.product.name_tr,
+                            productName_en: item.product.name_en,
+                            variantSize: item.variant.size,
+                            variantColor_tr: item.variant.color_tr,
+                            variantColor_en: item.variant.color_en
+                        }))
+                    }
                 }
+            })
+
+            // Increment coupon usage count atomically
+            if (validatedCouponCode) {
+                await tx.coupon.update({
+                    where: { code: validatedCouponCode },
+                    data: { usageCount: { increment: 1 } }
+                })
             }
+
+            return created
         })
 
         // 3. Initialize iyzico

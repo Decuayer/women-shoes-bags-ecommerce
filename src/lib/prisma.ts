@@ -21,19 +21,23 @@ if (!connectionString) {
   )
 }
 
-// Reuse pool in serverless environment
+// Reuse pool across hot-reloads in dev
 if (!globalForPrisma.pool) {
   try {
     globalForPrisma.pool = new Pool({
       connectionString,
-      ssl: { rejectUnauthorized: false }, // Supabase requires this
-      max: 1, // Limit connections in serverless environment
-      idleTimeoutMillis: 60000, // 60 seconds before closing idle connections
-      connectionTimeoutMillis: 30000, // 30 seconds to establish connection
-      statement_timeout: 30000, // 30 seconds for query execution
+      ssl: { rejectUnauthorized: false },
+      // Use more connections so parallel Next.js requests don't queue up
+      max: 5,
+      min: 1,
+      // How long to wait for a connection from the pool (ms)
+      connectionTimeoutMillis: 10000,
+      // How long a connection can stay idle before being closed (ms)
+      idleTimeoutMillis: 30000,
+      // How long a single query can run (ms)
+      statement_timeout: 15000,
     })
 
-    // Test connection
     globalForPrisma.pool.on('error', (err) => {
       console.error('Unexpected database pool error:', err)
     })
@@ -43,6 +47,14 @@ if (!globalForPrisma.pool) {
         console.log('✅ Database connection established')
       }
     })
+
+    // Warm-up: eagerly open a connection so the first request doesn't timeout
+    globalForPrisma.pool.connect().then(client => {
+      client.release()
+    }).catch(err => {
+      console.warn('⚠️ Database warm-up failed (will retry on first request):', err.message)
+    })
+
   } catch (error) {
     console.error('❌ Failed to create database connection pool:', error)
     throw new Error(
@@ -59,4 +71,3 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
 })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
-

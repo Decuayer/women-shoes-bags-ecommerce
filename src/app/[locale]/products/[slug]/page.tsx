@@ -4,6 +4,7 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import ProductDetailClient from '@/components/products/ProductDetailClient'
 import ProductCard from '@/components/products/ProductCard'
+import ProductReviews from '@/components/products/ProductReviews'
 import { prisma } from '@/lib/prisma'
 import { verifyAccessTokenEdge } from '@/lib/auth-edge'
 import { cookies } from 'next/headers'
@@ -17,19 +18,35 @@ async function getProduct(slug: string, locale: string) {
     const product = await prisma.product.findUnique({
         where: { slug },
         include: {
-            category: true,
+            category: {
+                include: {
+                    parent: {
+                        select: { id: true, slug: true, name_tr: true, name_en: true }
+                    }
+                }
+            },
             images: {
                 orderBy: { displayOrder: 'asc' },
             },
             variants: {
                 orderBy: [{ color_tr: 'asc' }, { size: 'asc' }],
             },
+            reviews: {
+                where: { isApproved: true },
+                select: { rating: true }
+            }
         },
     })
 
     if (!product || !product.isActive) {
         return null
     }
+
+    // Calculate avg rating
+    const approvedReviews = product.reviews || []
+    const avgRating = approvedReviews.length > 0
+        ? Number((approvedReviews.reduce((sum, r) => sum + r.rating, 0) / approvedReviews.length).toFixed(1))
+        : null
 
     return {
         id: product.id,
@@ -43,6 +60,11 @@ async function getProduct(slug: string, locale: string) {
         category: {
             name: locale === 'tr' ? product.category.name_tr : product.category.name_en,
             slug: product.category.slug,
+            // Parent info for breadcrumb (if this is a subcategory)
+            parent: product.category.parent ? {
+                name: locale === 'tr' ? product.category.parent.name_tr : product.category.parent.name_en,
+                slug: product.category.parent.slug,
+            } : null,
         },
         images: product.images.map((img) => ({
             id: img.id,
@@ -59,6 +81,8 @@ async function getProduct(slug: string, locale: string) {
             sku: v.sku,
         })),
         categoryId: product.categoryId,
+        avgRating,
+        reviewCount: approvedReviews.length,
     }
 }
 
@@ -75,49 +99,82 @@ async function getRelatedProducts(categoryId: string, excludeSlug: string, local
                 orderBy: { displayOrder: 'asc' },
                 take: 1,
             },
+            reviews: {
+                where: { isApproved: true },
+                select: { rating: true }
+            }
         },
         take: 4,
         orderBy: { createdAt: 'desc' },
     })
 
-    return products.map((product) => ({
-        id: product.id,
-        slug: product.slug,
-        name: locale === 'tr' ? product.name_tr : product.name_en,
-        price: Number(product.price),
-        compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
-        category: {
-            name: locale === 'tr' ? product.category.name_tr : product.category.name_en,
-            slug: product.category.slug,
-        },
-        images: product.images.map((img) => ({
-            url: img.url,
-            alt: locale === 'tr' ? (img.alt_tr || product.name_tr) : (img.alt_en || product.name_en),
-        })),
-        rating: 4.5,
-    }))
+    return products.map((product) => {
+        const approvedReviews = product.reviews || []
+        const avgRating = approvedReviews.length > 0
+            ? Number((approvedReviews.reduce((sum, r) => sum + r.rating, 0) / approvedReviews.length).toFixed(1))
+            : null
+
+        return {
+            id: product.id,
+            slug: product.slug,
+            name: locale === 'tr' ? product.name_tr : product.name_en,
+            price: Number(product.price),
+            compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+            category: {
+                name: locale === 'tr' ? product.category.name_tr : product.category.name_en,
+                slug: product.category.slug,
+            },
+            images: product.images.map((img) => ({
+                url: img.url,
+                alt: locale === 'tr' ? (img.alt_tr || product.name_tr) : (img.alt_en || product.name_en),
+            })),
+            rating: avgRating,
+            reviewCount: approvedReviews.length,
+        }
+    })
 }
 
-async function checkIsWishlisted(productId: string) {
-    try {
-        const cookieStore = await cookies()
-        const token = cookieStore.get('accessToken')?.value
-        if (!token) return false
+async function getReviewData(productId: string, userId: string | null) {
+    const reviews = await prisma.review.findMany({
+        where: { productId, isApproved: true },
+        include: {
+            user: { select: { firstName: true, lastName: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+    })
 
-        const payload = await verifyAccessTokenEdge(token)
-        if (!payload) return false
+    const mapped = reviews.map(r => ({
+        id: r.id,
+        rating: r.rating,
+        title: r.title,
+        comment: r.comment,
+        isVerifiedPurchase: r.isVerifiedPurchase,
+        createdAt: r.createdAt.toISOString(),
+        user: { name: `${r.user.firstName} ${r.user.lastName.charAt(0)}.` }
+    }))
 
-        const count = await prisma.wishlist.count({
-            where: {
-                userId: payload.userId as string,
-                productId: productId
-            }
-        })
+    const avgRating = reviews.length > 0
+        ? Number((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1))
+        : null
 
-        return count > 0
-    } catch {
-        return false
+    let canReview = false
+    let hasReviewed = false
+
+    if (userId) {
+        // Check if user has a delivered order with this product
+        const [deliveredOrder, existingReview] = await Promise.all([
+            prisma.order.findFirst({
+                where: { userId, status: 'DELIVERED', items: { some: { productId } } }
+            }),
+            prisma.review.findUnique({
+                where: { userId_productId: { userId, productId } }
+            })
+        ])
+        canReview = !!deliveredOrder
+        hasReviewed = !!existingReview
     }
+
+    return { reviews: mapped, avgRating, reviewCount: reviews.length, canReview, hasReviewed }
 }
 
 import { getGeneralSettings, getAnnouncementSettings, getFeatureHighlights } from '@/lib/settings'
@@ -135,25 +192,19 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         notFound()
     }
 
-    const relatedProducts = await getRelatedProducts(product.categoryId, product.slug, locale)
-
-    // Check if main product is wishlisted
-    const isWishlisted = await checkIsWishlisted(product.id)
-
-    // We can also fetch wishlist IDs for related products if we want them to show hearts,
-    // but for now let's focus on the main product detail as requested.
-    // Actually, user expects related products to also have correct state.
-
-    // Re-use logic for related products
+    // Get current user for reviews gating
     const cookieStore = await cookies()
     const token = cookieStore.get('accessToken')?.value
+    let userId: string | null = null
     let wishlistIds = new Set<string>()
+
     if (token) {
         try {
             const payload = await verifyAccessTokenEdge(token)
             if (payload) {
+                userId = payload.userId as string
                 const items = await prisma.wishlist.findMany({
-                    where: { userId: payload.userId as string },
+                    where: { userId },
                     select: { productId: true }
                 })
                 wishlistIds = new Set(items.map(i => i.productId))
@@ -161,14 +212,21 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         } catch { }
     }
 
+    const isWishlisted = wishlistIds.has(product.id)
+
+    const [relatedProducts, reviewData] = await Promise.all([
+        getRelatedProducts(product.categoryId, product.slug, locale),
+        getReviewData(product.id, userId)
+    ])
+
     return (
         <div className="min-h-screen flex flex-col">
             <Header locale={locale} settings={{ general, announcement }} />
             <main className="flex-1 bg-background">
                 <div className="container">
                     <div className="py-6">
-                        {/* Breadcrumb */}
-                        <nav className="flex items-center gap-2 text-sm mb-8 text-text-muted">
+                        {/* Breadcrumb — supports subcategory: Home > Products > Parent Cat > Sub Cat > Product */}
+                        <nav className="flex items-center gap-2 text-sm mb-8 text-text-muted flex-wrap">
                             <Link href={`/${locale}`} className="hover:text-secondary flex items-center gap-1">
                                 <Home size={14} />
                                 {isTr ? 'Anasayfa' : 'Home'}
@@ -177,6 +235,18 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                             <Link href={`/${locale}/products`} className="hover:text-secondary">
                                 {isTr ? 'Ürünler' : 'Products'}
                             </Link>
+                            {/* If the category has a parent (i.e. it's a subcategory), show parent first */}
+                            {product.category.parent && (
+                                <>
+                                    <ChevronRight size={14} />
+                                    <Link
+                                        href={`/${locale}/products?category=${product.category.parent.slug}`}
+                                        className="hover:text-secondary"
+                                    >
+                                        {product.category.parent.name}
+                                    </Link>
+                                </>
+                            )}
                             <ChevronRight size={14} />
                             <Link
                                 href={`/${locale}/products?category=${product.category.slug}`}
@@ -194,6 +264,17 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                             locale={locale}
                             initialIsWishlisted={isWishlisted}
                             features={features}
+                        />
+
+                        {/* Reviews Section */}
+                        <ProductReviews
+                            productId={product.id}
+                            initialReviews={reviewData.reviews}
+                            avgRating={reviewData.avgRating}
+                            reviewCount={reviewData.reviewCount}
+                            locale={locale}
+                            canReview={reviewData.canReview}
+                            hasReviewed={reviewData.hasReviewed}
                         />
 
                         {/* Related Products */}

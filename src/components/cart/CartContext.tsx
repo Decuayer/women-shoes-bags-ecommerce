@@ -17,6 +17,7 @@ interface CartItem {
     quantity: number
     stock: number
     slug: string
+    categorySlug: string
 }
 
 interface CartContextType {

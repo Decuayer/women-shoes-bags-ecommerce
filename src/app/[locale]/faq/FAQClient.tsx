@@ -84,7 +84,7 @@ export default function FAQClient({ locale }: FAQClientProps) {
             items: isTr ? [
                 {
                     question: 'Kargo ücreti ne kadar?',
-                    answer: '1500 TL ve üzeri siparişlerde kargo ücretsizdir. 1500 TL altı siparişlerde kargo bedeli 50 TL\'dir.'
+                    answer: '1750 TL ve üzeri siparişlerde kargo ücretsizdir. 1750 TL altı siparişlerde kargo bedeli 50 TL\'dir.'
                 },
                 {
                     question: 'Siparişim ne zaman kargoya verilir?',
@@ -105,7 +105,7 @@ export default function FAQClient({ locale }: FAQClientProps) {
             ] : [
                 {
                     question: 'How much is shipping?',
-                    answer: 'Shipping is free for orders over 1500 TL. For orders under 1500 TL, the shipping cost is 50 TL.'
+                    answer: 'Shipping is free for orders over 1750 TL. For orders under 1750 TL, the shipping cost is 50 TL.'
                 },
                 {
                     question: 'When will my order be shipped?',

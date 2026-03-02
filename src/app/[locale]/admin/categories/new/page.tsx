@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma'
 import CategoryForm from '@/components/admin/CategoryForm'
 
 interface CreateCategoryPageProps {
@@ -6,5 +7,13 @@ interface CreateCategoryPageProps {
 
 export default async function CreateCategoryPage({ params }: CreateCategoryPageProps) {
     const { locale } = await params
-    return <CategoryForm locale={locale} />
+
+    // Fetch all parent-level categories (no parentId) for the dropdown
+    const parentCategories = await prisma.category.findMany({
+        where: { parentId: null, isActive: true },
+        select: { id: true, name_tr: true, name_en: true },
+        orderBy: { name_en: 'asc' }
+    })
+
+    return <CategoryForm locale={locale} parentCategories={parentCategories} />
 }

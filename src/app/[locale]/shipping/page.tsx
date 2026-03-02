@@ -63,7 +63,7 @@ export default async function ShippingPage({ params }: ShippingPageProps) {
                                         <span className="text-2xl font-bold text-green-600">₺0</span>
                                     </div>
                                     <p className="text-sm text-text-muted">
-                                        {isTr ? '1500 TL ve üzeri siparişlerde' : 'On orders over 1500 TL'}
+                                        {isTr ? '1750 TL ve üzeri siparişlerde' : 'On orders over 1750 TL'}
                                     </p>
                                 </div>
                                 <div className="p-4 bg-surface-light rounded-lg border border-border">
@@ -74,7 +74,7 @@ export default async function ShippingPage({ params }: ShippingPageProps) {
                                         <span className="text-2xl font-bold">₺50</span>
                                     </div>
                                     <p className="text-sm text-text-muted">
-                                        {isTr ? '1500 TL altı siparişlerde' : 'On orders under 1500 TL'}
+                                        {isTr ? '1750 TL altı siparişlerde' : 'On orders under 1750 TL'}
                                     </p>
                                 </div>
                             </div>

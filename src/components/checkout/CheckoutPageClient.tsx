@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import { useCart } from '@/components/cart/CartContext'
 import AddressSelector from './AddressSelector'
@@ -15,7 +15,8 @@ import {
     ChevronRight,
     ArrowLeft,
     Shield,
-    Lock
+    Lock,
+    Tag
 } from 'lucide-react'
 
 interface Address {
@@ -44,7 +45,7 @@ interface CheckoutPageClientProps {
     }
 }
 
-type Step = 'address' | 'shipping' | 'payment'
+type Step = 'address' | 'payment'
 
 export default function CheckoutPageClient({
     locale,
@@ -52,8 +53,13 @@ export default function CheckoutPageClient({
     shippingSettings = { freeShippingThreshold: 1500, shippingCost: 50 } // Fallback default if not passed
 }: CheckoutPageClientProps) {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { items, subtotal, clearCart, itemCount } = useCart()
     const isTr = locale === 'tr'
+
+    // Read applied coupon from URL (set by CartPageClient)
+    const couponCodeFromUrl = searchParams.get('coupon') || ''
+    const discountAmountFromUrl = parseFloat(searchParams.get('discount') || '0') || 0
 
     const [currentStep, setCurrentStep] = useState<Step>('address')
     const [isProcessing, setIsProcessing] = useState(false)
@@ -107,30 +113,21 @@ export default function CheckoutPageClient({
         })
     }
 
-    const [shippingMethod, setShippingMethod] = useState('standard')
+    const [shippingMethod] = useState('standard')
 
-    // Calculate costs
+    // Calculate costs — single shipping option, admin-configurable
     const shippingThreshold = shippingSettings.freeShippingThreshold
-    // Standard shipping uses settings.cost, Express adds extra 20 TL (example logic)
-    const baseShipping = shippingMethod === 'express'
-        ? shippingSettings.shippingCost + 20
-        : shippingSettings.shippingCost
-
-    const shippingCost = subtotal >= shippingThreshold ? 0 : baseShipping
-    const total = subtotal + shippingCost
+    const shippingCost = subtotal >= shippingThreshold ? 0 : shippingSettings.shippingCost
+    const discountAmount = discountAmountFromUrl
+    const total = Math.max(0, subtotal + shippingCost - discountAmount)
 
     const steps = [
         { id: 'address', label: isTr ? 'Adres' : 'Address', icon: MapPin },
-        { id: 'shipping', label: isTr ? 'Kargo' : 'Shipping', icon: Truck },
         { id: 'payment', label: isTr ? 'Ödeme' : 'Payment', icon: CreditCard },
     ]
 
     const handleAddressSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        setCurrentStep('shipping')
-    }
-
-    const handleShippingSubmit = () => {
         setCurrentStep('payment')
     }
 
@@ -180,12 +177,14 @@ export default function CheckoutPageClient({
                         phone: address.phone,
                         email: address.email,
                         city: address.city,
-                        country: 'Turkey', // Default
+                        country: 'Turkey',
                         addressLine1: address.address,
                         postalCode: address.postalCode
                     },
                     cartItems: items,
-                    locale: locale
+                    locale: locale,
+                    couponCode: couponCodeFromUrl || null,
+                    discountAmount: discountAmountFromUrl || 0,
                 })
             })
 
@@ -435,107 +434,6 @@ export default function CheckoutPageClient({
                             </div>
                         )}
 
-                        {/* Shipping Options */}
-                        {currentStep === 'shipping' && (
-                            <div className="bg-surface rounded-xl p-6 border border-border">
-                                <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                                    <Truck size={20} className="text-secondary" />
-                                    {isTr ? 'Kargo Seçenekleri' : 'Shipping Options'}
-                                </h2>
-
-                                <div className="space-y-3">
-                                    <label
-                                        className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${shippingMethod === 'standard'
-                                            ? 'border-secondary bg-secondary/10'
-                                            : 'border-border hover:border-secondary/50'
-                                            }`}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="shipping"
-                                            value="standard"
-                                            checked={shippingMethod === 'standard'}
-                                            onChange={(e) => setShippingMethod(e.target.value)}
-                                            className="sr-only"
-                                        />
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${shippingMethod === 'standard' ? 'border-secondary' : 'border-text-dark'
-                                            }`}>
-                                            {shippingMethod === 'standard' && (
-                                                <div className="w-2.5 h-2.5 rounded-full bg-secondary" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-medium">
-                                                {isTr ? 'Standart Kargo' : 'Standard Shipping'}
-                                            </p>
-                                            <p className="text-sm text-text-muted">
-                                                {isTr ? '3-5 iş günü' : '3-5 business days'}
-                                            </p>
-                                        </div>
-                                        <span className="font-medium text-secondary">
-                                            {subtotal >= shippingThreshold
-                                                ? (isTr ? 'Ücretsiz' : 'Free')
-                                                : `${shippingSettings.shippingCost.toLocaleString('tr-TR')} TL`
-                                            }
-                                        </span>
-                                    </label>
-
-                                    <label
-                                        className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${shippingMethod === 'express'
-                                            ? 'border-secondary bg-secondary/10'
-                                            : 'border-border hover:border-secondary/50'
-                                            }`}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="shipping"
-                                            value="express"
-                                            checked={shippingMethod === 'express'}
-                                            onChange={(e) => setShippingMethod(e.target.value)}
-                                            className="sr-only"
-                                        />
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${shippingMethod === 'express' ? 'border-secondary' : 'border-text-dark'
-                                            }`}>
-                                            {shippingMethod === 'express' && (
-                                                <div className="w-2.5 h-2.5 rounded-full bg-secondary" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-medium">
-                                                {isTr ? 'Hızlı Kargo' : 'Express Shipping'}
-                                            </p>
-                                            <p className="text-sm text-text-muted">
-                                                {isTr ? '1-2 iş günü' : '1-2 business days'}
-                                            </p>
-                                        </div>
-                                        <span className="font-medium text-secondary">
-                                            {subtotal >= shippingThreshold
-                                                ? (isTr ? 'Ücretsiz' : 'Free')
-                                                : `${(shippingSettings.shippingCost + 20).toLocaleString('tr-TR')} TL`
-                                            }
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <div className="flex gap-3 mt-6">
-                                    <button
-                                        onClick={() => setCurrentStep('address')}
-                                        className="btn btn-secondary flex-1"
-                                    >
-                                        <ArrowLeft size={18} />
-                                        {isTr ? 'Geri' : 'Back'}
-                                    </button>
-                                    <button
-                                        onClick={handleShippingSubmit}
-                                        className="btn btn-primary flex-1"
-                                    >
-                                        {isTr ? 'Devam Et' : 'Continue'}
-                                        <ChevronRight size={18} />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
                         {/* Payment */}
                         {currentStep === 'payment' && (
                             <div className="bg-surface rounded-xl p-6 border border-border">
@@ -572,7 +470,7 @@ export default function CheckoutPageClient({
 
                                         <div className="flex gap-3">
                                             <button
-                                                onClick={() => setCurrentStep('shipping')}
+                                                onClick={() => setCurrentStep('address')}
                                                 className="btn btn-secondary flex-1"
                                             >
                                                 <ArrowLeft size={18} />
@@ -651,6 +549,15 @@ export default function CheckoutPageClient({
                                         }
                                     </span>
                                 </div>
+                                {discountAmount > 0 && couponCodeFromUrl && (
+                                    <div className="flex justify-between text-success">
+                                        <span className="flex items-center gap-1">
+                                            <Tag size={13} />
+                                            {couponCodeFromUrl}
+                                        </span>
+                                        <span>−{discountAmount.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} TL</span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Total */}

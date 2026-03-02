@@ -85,6 +85,7 @@ export default function ProductDetailClient({ product, locale, initialIsWishlist
             color: selectedVariant.color,
             stock: selectedVariant.stock,
             slug: product.slug,
+            categorySlug: product.category.slug,
             quantity: quantity
         })
 

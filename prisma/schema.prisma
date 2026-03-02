@@ -248,10 +248,12 @@ model Order {
   shippingCountry     String @default("TR")
   
   // Order totals
-  subtotal      Decimal   @db.Decimal(10, 2)
-  shippingCost  Decimal   @db.Decimal(10, 2) @default(0)
-  tax           Decimal   @db.Decimal(10, 2) @default(0)
-  total         Decimal   @db.Decimal(10, 2)
+  subtotal        Decimal   @db.Decimal(10, 2)
+  shippingCost    Decimal   @db.Decimal(10, 2) @default(0)
+  tax             Decimal   @db.Decimal(10, 2) @default(0)
+  discountAmount  Decimal   @db.Decimal(10, 2) @default(0)
+  couponCode      String?
+  total           Decimal   @db.Decimal(10, 2)
   
   // Payment
   paymentId     String?   @unique
@@ -408,4 +410,32 @@ model ContactMessage {
   updatedAt DateTime @updatedAt
 
   @@map("contact_messages")
+}
+
+// ==================== COUPON MODEL ====================
+enum DiscountType {
+  PERCENTAGE  // e.g. 10 = 10% off
+  FIXED       // e.g. 50 = 50 TL off
+}
+
+model Coupon {
+  id              String       @id @default(cuid())
+  code            String       @unique  // Uppercase, no spaces
+  description     String?      // Admin note
+
+  type            DiscountType
+  value           Decimal      @db.Decimal(10, 2)  // 10 for 10%, 50 for 50 TL
+  minOrderAmount  Decimal?     @db.Decimal(10, 2)  // Minimum cart value required
+  maxDiscount     Decimal?     @db.Decimal(10, 2)  // Cap for PERCENTAGE type
+
+  usageLimit      Int?                             // null = unlimited
+  usageCount      Int          @default(0)
+
+  isActive        Boolean      @default(true)
+  expiresAt       DateTime?    // null = never expires
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("coupons")
 }

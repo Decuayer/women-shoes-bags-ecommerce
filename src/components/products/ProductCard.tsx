@@ -17,7 +17,8 @@ interface ProductCardProps {
             url: string
             alt: string
         }[]
-        rating?: number
+        rating?: number | null
+        reviewCount?: number
     }
     locale: string
     isWishlisted?: boolean
@@ -83,8 +84,8 @@ export default function ProductCard({ product, locale, isWishlisted = false }: P
                     </h3>
                 </Link>
 
-                {/* Rating */}
-                {product.rating !== undefined && (
+                {/* Rating — only shown when there are real reviews */}
+                {product.rating != null && (
                     <div className="flex items-center gap-1 mt-2">
                         {[...Array(5)].map((_, i) => (
                             <Star
@@ -94,7 +95,8 @@ export default function ProductCard({ product, locale, isWishlisted = false }: P
                             />
                         ))}
                         <span className="text-xs text-text-muted ml-1">
-                            ({product.rating.toFixed(1)})
+                            {product.rating.toFixed(1)}
+                            {product.reviewCount ? ` (${product.reviewCount})` : ''}
                         </span>
                     </div>
                 )}

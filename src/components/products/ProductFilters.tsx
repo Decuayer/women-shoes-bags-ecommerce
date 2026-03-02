@@ -1,13 +1,21 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { Filter, X, ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { Filter, X, ChevronDown, ChevronRight, SlidersHorizontal } from 'lucide-react'
+
+interface SubCategory {
+    id: string
+    slug: string
+    name: string
+}
 
 interface Category {
     id: string
     slug: string
     name: string
+    parentId: string | null
+    children?: SubCategory[]
 }
 
 interface ProductFiltersProps {
@@ -22,6 +30,7 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
     const pathname = usePathname()
     const searchParams = useSearchParams()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
     const isTr = locale === 'tr'
 
@@ -35,6 +44,16 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
     const [minPrice, setMinPrice] = useState(currentMinPrice)
     const [maxPrice, setMaxPrice] = useState(currentMaxPrice)
     const isMounted = useRef(false)
+
+    // Auto-expand parent of selected subcategory
+    useEffect(() => {
+        if (currentCategory) {
+            const parent = categories.find(c => c.children?.some(ch => ch.slug === currentCategory))
+            if (parent) {
+                setExpandedCategories(prev => new Set([...prev, parent.id]))
+            }
+        }
+    }, [currentCategory, categories])
 
     // Sync local state with URL params when they change
     useEffect(() => {
@@ -81,7 +100,18 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
         router.push(pathname, { scroll: false })
     }
 
+    const toggleCategoryExpand = (id: string) => {
+        setExpandedCategories(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id); else next.add(id)
+            return next
+        })
+    }
+
     const hasFilters = currentCategory || currentColor || currentSize || currentMinPrice || currentMaxPrice
+
+    // Separate parent/top-level categories
+    const parentCategories = categories.filter(c => !c.parentId)
 
     const FilterContent = () => (
         <div className="space-y-6">
@@ -91,7 +121,8 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
                     {isTr ? 'Kategoriler' : 'Categories'}
                     <ChevronDown size={16} className="text-text-muted" />
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-1">
+                    {/* All categories button */}
                     <button
                         onClick={() => updateFilter('category', '')}
                         className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!currentCategory ? 'bg-secondary text-primary' : 'text-text-muted hover:bg-surface-light'
@@ -99,16 +130,52 @@ export default function ProductFilters({ locale, categories, colors, sizes }: Pr
                     >
                         {isTr ? 'Tüm Kategoriler' : 'All Categories'}
                     </button>
-                    {categories.map((cat) => (
-                        <button
-                            key={cat.id}
-                            onClick={() => updateFilter('category', cat.slug)}
-                            className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${currentCategory === cat.slug ? 'bg-secondary text-primary' : 'text-text-muted hover:bg-surface-light'
-                                }`}
-                        >
-                            {cat.name}
-                        </button>
-                    ))}
+
+                    {parentCategories.map((cat) => {
+                        const hasChildren = cat.children && cat.children.length > 0
+                        const isExpanded = expandedCategories.has(cat.id)
+                        const isSelected = currentCategory === cat.slug
+
+                        return (
+                            <div key={cat.id}>
+                                {/* Parent category row */}
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => updateFilter('category', cat.slug)}
+                                        className={`flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors ${isSelected ? 'bg-secondary text-primary' : 'text-text-muted hover:bg-surface-light'}`}
+                                    >
+                                        {cat.name}
+                                    </button>
+                                    {hasChildren && (
+                                        <button
+                                            onClick={() => toggleCategoryExpand(cat.id)}
+                                            className="p-2 text-text-dark hover:text-secondary transition-colors rounded-lg hover:bg-surface-light"
+                                        >
+                                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Subcategories */}
+                                {hasChildren && isExpanded && (
+                                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-border pl-3">
+                                        {cat.children!.map((sub) => (
+                                            <button
+                                                key={sub.id}
+                                                onClick={() => updateFilter('category', sub.slug)}
+                                                className={`block w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors ${currentCategory === sub.slug
+                                                    ? 'bg-secondary text-primary'
+                                                    : 'text-text-dark hover:bg-surface-light'
+                                                    }`}
+                                            >
+                                                {sub.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
                 </div>
             </div>
 
