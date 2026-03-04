@@ -58,7 +58,7 @@ export default function FAQClient({ locale }: FAQClientProps) {
                 },
                 {
                     question: 'Üyelik zorunlu mu?',
-                    answer: 'Hayır, misafir olarak da alışveriş yapabilirsiniz. Ancak üye olmanız durumunda sipariş takibi, favori ürünler ve hızlı ödeme gibi avantajlardan yararlanabilirsiniz.'
+                    answer: 'Evet, alışveriş yapabilmek için üyelik gereklidir. Üye olarak siparişlerinizi takip edebilir, favori ürünlerinizi kaydedebilir ve hızlı ödeme avantajlarından yararlanabilirsiniz.'
                 }
             ] : [
                 {
@@ -176,7 +176,7 @@ export default function FAQClient({ locale }: FAQClientProps) {
                 },
                 {
                     question: 'Değişim ücreti var mı?',
-                    answer: 'İlk değişim işlemi ücretsizdir. Kargo masrafı tarafımızca karşılanır.'
+                    answer: 'Değişimlerde kargo kullanıcı tarafından karşılanır. İlk değişim ücretsizdir.'
                 },
                 {
                     question: 'Değişim için gereken şartlar nelerdir?',
